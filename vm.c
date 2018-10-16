@@ -80,7 +80,12 @@ void vm_step(VM *vm) {
     VM_Instruction inst;
     memset(&inst, 0, sizeof(VM_Instruction));
 
-    uint16_t PC = vm->PC;
+    uint8_t PC = vm->PC;
+    if (PC % 2 != 0) {
+        fprintf(stderr, "Halted. PC not aligned.\n");
+        vm->halted = true;
+        return;
+    }
     uint16_t raw = (vm->M[PC] << 8) + vm->M[PC + 1];
     vm->PC += 2;
     inst.op = (uint8_t) (raw >> 12);
@@ -89,98 +94,107 @@ void vm_step(VM *vm) {
         return;
     }
 
-    uint8_t temp = 0, x = 0, y = 0;
+    uint8_t x = 0;
+    uint8_t y = 0;
+    uint8_t d = 0;
     uint16_t temp16 = 0;
     switch (inst.op) {
         case OP_LDA:
             vm_decode_Q(&inst, raw);
-            vm_put_r(vm, inst.rd, vm->M[inst.imm]);
+            d = vm->M[inst.imm];
             break;
         case OP_STA:
             vm_decode_Q(&inst, raw);
-            vm->M[inst.imm] = (uint8_t) vm_get_r(vm, inst.rd);
+            vm->M[inst.imm] = vm_get_r(vm, inst.rd);
             break;
         case OP_LDI:
             vm_decode_Q(&inst, raw);
-            vm_put_r(vm, inst.rd, inst.imm);
+            d = inst.imm;
             break;
         case OP_ADD:
             vm_decode_S(&inst, raw);
             vm->carry = 0;
-            temp = vm_get_r(vm, inst.rx) + vm_get_r(vm, inst.ry);
-            vm_put_r(vm, inst.rd, temp);
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            d = x + y;
             break;
         case OP_ADC:
             vm_decode_S(&inst, raw);
-            temp16 = vm_get_r(vm, inst.rx) + vm_get_r(vm, inst.ry) + vm->carry;
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            temp16 = x + y + vm->carry;
             vm->carry = (uint8_t) (temp16 >> 8);
-            vm_put_r(vm, inst.rd, (uint8_t)temp16);
+            d = (uint8_t) temp16;
             break;
         case OP_SUB:
             vm_decode_S(&inst, raw);
             vm->carry = 0;
-            temp = vm_get_r(vm, inst.rx) - vm_get_r(vm, inst.ry);
-            vm_put_r(vm, inst.rd, temp);
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            d = x - y;
             break;
         case OP_SBC:
             vm_decode_S(&inst, raw);
             x = vm_get_r(vm, inst.rx);
             y = vm_get_r(vm, inst.ry);
-            temp = vm_subtract(x, y, &vm->carry);
-            vm_put_r(vm, inst.rd, temp);
+            d = vm_subtract(x, y, &vm->carry);
             break;
         case OP_NOT:
             vm_decode_T(&inst, raw);
-            temp = vm_get_r(vm, inst.rx);
-            vm_put_r(vm, inst.rd, ~temp);
+            d = ~x;
             break;
         case OP_AND:
             vm_decode_S(&inst, raw);
-            temp = vm_get_r(vm, inst.rx) & vm_get_r(vm, inst.ry);
-            vm_put_r(vm, inst.rd, temp);
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            d = x & y;
             break;
         case OP_SHL:
             vm_decode_T(&inst, raw);
-            temp = vm_get_r(vm, inst.rx) << vm_get_r(vm, (uint8_t) inst.imm);
-            vm_put_r(vm, inst.rd, temp);
+            x = vm_get_r(vm, inst.rx);
+            d = x << vm_get_r(vm, inst.imm);
             break;
         case OP_SHR:
             vm_decode_T(&inst, raw);
-            temp = vm_get_r(vm, inst.rx) >> vm_get_r(vm, (uint8_t) inst.imm);
-            vm_put_r(vm, inst.rd, temp);
+            x = vm_get_r(vm, inst.rx);
+            d = x >> vm_get_r(vm, inst.imm);
             break;
         case OP_SYS:
             vm_decode_Q(&inst, raw);
             if (vm->syscall != NULL) {
-                temp = vm->syscall(vm, inst.imm);
-                vm_put_r(vm, inst.rd, temp);
+                d = vm->syscall(vm, inst.imm);
             } else {
                 printf("SYSCALL #%d\n", inst.imm);
             }
             break;
         case OP_JMP:
             vm_decode_Q(&inst, raw);
-            vm->PC = vm->M[inst.rd];
+            vm->PC = vm_get_r(vm, inst.rd);
             break;
         case OP_JEQ:
             vm_decode_S(&inst, raw);
-            if (vm_get_r(vm, inst.rx) == vm_get_r(vm, inst.ry)) {
-                vm->PC = vm->M[inst.rd];
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            if (x == y) {
+                vm->PC = vm_get_r(vm, inst.rd);
             }
             break;
         case OP_JLT:
             vm_decode_S(&inst, raw);
-            if (vm_get_r(vm, inst.rx) < vm_get_r(vm, inst.ry)) {
-                vm->PC = vm->M[inst.rd];
+            x = vm_get_r(vm, inst.rx);
+            y = vm_get_r(vm, inst.ry);
+            if (x < y) {
+                vm->PC = vm_get_r(vm, inst.rd);
             }
             break;
         case OP_HLT:
-            printf("Halted at 0x%04hX\n", PC);
+            printf("Halted at 0x%04X\n", PC);
             vm->halted = true;
             break;
         default:
-            printf("Unknown Instruction at 0x%04hX: 0x%hhX\n", PC, inst.op);
+            printf("Unknown Instruction at 0x%04X: 0x%hhX\n", PC, inst.op);
             vm->halted = true;
             break;
     }
+    vm_put_r(vm, inst.rd, d);
 }

@@ -39,7 +39,7 @@ typedef struct VM_Instruction_t VM_Instruction;
 
 struct VM_t {
     uint8_t R[VM_REG_SIZE];
-    uint16_t PC;
+    uint8_t PC;
     uint8_t M[VM_MEM_SIZE];
     uint8_t carry;
     bool halted;

@@ -13,8 +13,6 @@ int main() {
     };
     memcpy(&vm->M, data, 6);
 
-    printf("%i\n", (uint8_t)0x101);
-
     while(!vm->halted) {
         vm_step(vm);
     }
