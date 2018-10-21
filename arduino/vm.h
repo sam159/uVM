@@ -40,6 +40,10 @@ limitations under the License.
 #define OP_JEQ 0xe
 #define OP_JLT 0xf
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct VM_Instruction_t {
     uint8_t op;
     uint8_t rd;
@@ -78,5 +82,9 @@ void vm_decode_T(VM_Instruction *inst, uint16_t raw);
 uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow);
 
 void vm_step(VM *vm);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //UVM_VM_H
