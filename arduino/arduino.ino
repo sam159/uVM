@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
+/**
+ * Example Programs
+ * Hello World: 0x311833021210c0323401411412103416e4203406d400000048656c6c6f20576f726c640a
+ */
+
 #include "vm.h"
 #include "console.h"
 
@@ -21,15 +26,57 @@ VM vm;
 Console console(&vm);
 
 void setup() {
-  // put your setup code here, to run once:
   vm_reset(&vm);
-  Serial.begin(9600);
+  vm.error = vm_print_error;
+  vm.syscall = vm_syscall;
+  Serial.begin(1200);
+  console.setSerial(&Serial);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  console.loop(&Serial);
+  console.loop();
   
 }
 
+void vm_print_error(uint8_t err) {
+  Serial.print("\n");
+  switch(err) {
+    case VM_ERR_MISALIGN:
+      Serial.println("Halted. PC misaligned.");
+      break;
+    case VM_ERR_UNKNOWN_OP:
+      Serial.println("Halted. Unknown instruction. (this should never happen)");
+      break;
+    case VM_ERR_OUT_OF_BOUNDS:
+      Serial.println("Halted. Operation out of bounds.");
+      break;
+    default:
+      Serial.println("Halted. Unknown Error.");
+      break;
+  }
+}
+
+uint8_t vm_syscall(VM* vm, uint8_t callno, uint8_t imm) {
+//  Serial.print("SYSCALL 0x");
+//  Serial.print(callno, HEX);
+//  Serial.print(". IMM=");
+//  Serial.print(imm);
+//  Serial.println("");
+  switch(callno) {
+    case 0:
+      delay(1<<imm);
+      break;
+    case 1:
+      delayMicroseconds(1<<imm);
+      break;
+    case 2:
+      if (imm < VM_REG_SIZE) {
+        Serial.print((char)vm->R[imm]);
+      }
+      break;
+    default:
+      return 0;
+  }
+  return 0;
+}
 

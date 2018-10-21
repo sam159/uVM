@@ -16,7 +16,6 @@ limitations under the License.
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include "vm.h"
 
 VM *new_vm() {
@@ -94,7 +93,9 @@ void vm_step(VM *vm) {
 
     uint8_t PC = vm->PC;
     if (PC % 2 != 0) {
-        fprintf(stderr, "Halted. PC not aligned.\n");
+        if (vm->error != NULL) {
+            vm->error(VM_ERR_MISALIGN);
+        }
         vm->halted = true;
         return;
     }
@@ -112,12 +113,32 @@ void vm_step(VM *vm) {
     uint16_t temp16 = 0;
     switch (inst.op) {
         case OP_LDA:
-            vm_decode_Q(&inst, raw);
-            d = vm->M[inst.imm];
+            vm_decode_T(&inst, raw);
+            x = vm_get_r(vm, inst.rx);
+            temp16 = x;
+            temp16 += inst.imm;
+            if (temp16 < VM_MEM_SIZE) {
+              d = vm->M[temp16];
+            } else {
+              if (vm->error != NULL) {
+                vm->error(VM_ERR_OUT_OF_BOUNDS);
+              }
+              vm->halted = true;
+            }
             break;
         case OP_STA:
-            vm_decode_Q(&inst, raw);
-            vm->M[inst.imm] = vm_get_r(vm, inst.rd);
+            vm_decode_T(&inst, raw);
+            x = vm_get_r(vm, inst.rx);
+            temp16 = vm_get_r(vm, inst.rd);
+            temp16 += inst.imm;
+            if (temp16 < VM_MEM_SIZE) {
+              vm->M[temp16] = x;
+            } else {
+              if (vm->error != NULL) {
+                vm->error(VM_ERR_OUT_OF_BOUNDS);
+              }
+              vm->halted = true;
+            }
             break;
         case OP_LDI:
             vm_decode_Q(&inst, raw);
@@ -172,11 +193,12 @@ void vm_step(VM *vm) {
             d = x >> vm_get_r(vm, inst.imm);
             break;
         case OP_SYS:
-            vm_decode_Q(&inst, raw);
+            vm_decode_T(&inst, raw);
+            x = vm_get_r(vm, inst.rx);
             if (vm->syscall != NULL) {
-                d = vm->syscall(vm, inst.imm);
+                d = vm->syscall(vm, x, inst.imm);
             } else {
-                printf("SYSCALL #%d\n", inst.imm);
+                d = 0;
             }
             break;
         case OP_JMP:
@@ -200,11 +222,12 @@ void vm_step(VM *vm) {
             }
             break;
         case OP_HLT:
-            printf("Halted at 0x%04X\n", PC);
             vm->halted = true;
             break;
         default:
-            printf("Unknown Instruction at 0x%04X: 0x%hhX\n", PC, inst.op);
+            if (vm->error != NULL) {
+              vm->error(VM_ERR_UNKNOWN_OP);
+            }
             vm->halted = true;
             break;
     }

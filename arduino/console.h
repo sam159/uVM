@@ -38,9 +38,20 @@ class Console {
     ConsoleState state;
     VM *vm;
     String *inputBuffer;
+    HardwareSerial *serial;
+    
+    int hexToDec(String);
+    void printRegisters(bool);
+    void printMemory(uint16_t, uint16_t);
+    
+    void stateActive();
+    void stateView();
+    void stateExamine();
+    
   public:
     Console (VM*);
-    void loop(HardwareSerial*);
+    void setSerial(HardwareSerial*);
+    void loop();
 };
 
 #endif //UVM_CONSOLE_H

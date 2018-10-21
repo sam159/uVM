@@ -40,6 +40,10 @@ limitations under the License.
 #define OP_JEQ 0xe
 #define OP_JLT 0xf
 
+#define VM_ERR_MISALIGN 0x1
+#define VM_ERR_UNKNOWN_OP 0x2
+#define VM_ERR_OUT_OF_BOUNDS 0x3
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,7 +63,8 @@ struct VM_t {
     uint8_t M[VM_MEM_SIZE];
     uint8_t carry;
     bool halted;
-    uint8_t (*syscall)(struct VM_t* vm, uint8_t callno);
+    uint8_t (*syscall)(struct VM_t* vm, uint8_t callno, uint8_t imm);
+    void (*error)(uint8_t err);
 };
 typedef struct VM_t VM;
 

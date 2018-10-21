@@ -16,17 +16,86 @@ limitations under the License.
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <errno.h>
 #include "console.h"
 
 Console::Console(VM* _vm) {
   this->state = CONSOLE_NONE;
   this->vm = _vm;
   this->inputBuffer = new String("");
+  this->serial = NULL;
 }
 
-void Console::loop(HardwareSerial * serial) {
+int Console::hexToDec(String str) {
+  errno = 0;
+  long int result = strtol(str.c_str(), NULL, 16);
+  if (errno != 0 || result < 0) {
+    return -1;
+  }
+  return (int)result;
+}
+
+void Console::setSerial(HardwareSerial *serial) {
+  this->serial = serial;
+}
+
+void Console::printRegisters(bool header) {
+  if (header) {
+    serial->println(" 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+  }
+  for(short i = 0; i < VM_REG_SIZE; i++) {
+    if (this->vm->R[i] < 0x10) {
+      serial->print("0");
+    }
+    serial->print(this->vm->R[i], HEX);
+    serial->print(" ");
+  }
+  serial->print("\n");
+}
+
+void Console::printMemory(uint16_t from, uint16_t to) {
+  uint16_t i = from;
+  serial->println("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+  if (from > 0 && from % 16 != 0) {
+    i = from - (from % 16);
+    serial->print("0x");
+    if (i < 0x10) {
+      serial->print("0");
+    }
+    serial->print(i, HEX);
+    serial->print(" ");
+    for(; i < from; i++) {
+      serial->print("   ");
+    }
+  }
+  for(i = from; i <= to && i < VM_MEM_SIZE; i++) {
+    if (i % 16 == 0) {
+      if (i > 0) {
+        serial->print("\n");
+        if (i % 128 == 0 ) {
+          serial->println("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+        }
+      }
+      serial->print("0x");
+      if (i < 0x10) {
+        serial->print("0");
+      }
+      serial->print(i, HEX);
+      serial->print(" ");
+    }
+    uint8_t m = this->vm->M[i];
+    if (m < 0x10) {
+      serial->print("0");
+    }
+    serial->print(m, HEX);
+    serial->print(" ");
+  }
+  serial->print("\n");
+}
+
+void Console::loop() {
+  HardwareSerial * serial = this->serial;
   int i;
-  char d;
       
   switch(this->state) {
     case CONSOLE_NONE:
@@ -46,107 +115,37 @@ void Console::loop(HardwareSerial * serial) {
       this->state = CONSOLE_ACTIVE;
     break;
     case CONSOLE_ACTIVE:
-      if(serial->available()) {
-        while((d = (char)serial->read()) != -1) {
-          if (d == 27) {
-            //escape, deactivate console
-            this->inputBuffer = new String("");
-            serial->println("Console deactivated.");
-            this->state = CONSOLE_NONE;
-          } else if (d == '\n') {
-            //Finished input
-            serial->print("\n");
-            if (this->inputBuffer->equals("?")) {
-              serial->print(F(
-"Commands\n"
-"?   | this help\n"
-"q   | deactivate console\n"
-"r   | run until halted\n"
-"s   | step one instruction\n"
-"e   | examine and update memory\n"
-"v   | show vm status\n"
-"rst | reset PC and registers\n"
-"clr | reset and clear memory\n"
-              ));
-              serial->print("> ");
-            } else if (this->inputBuffer->equals("q")) {
-              serial->println("Console deactivated.");
-              this->state = CONSOLE_NONE;
-            } else if (this->inputBuffer->equals("r")) {
-              this->state = CONSOLE_RUN;
-            } else if (this->inputBuffer->equals("s")) {
-              this->state = CONSOLE_STEP;
-            } else if (this->inputBuffer->equals("e")) {
-              this->state = CONSOLE_EXAMINE;
-            } else if (this->inputBuffer->equals("v")) {
-              this->state = CONSOLE_VIEW;
-            } else if (this->inputBuffer->equals("rst")) {
-              this->state = CONSOLE_RESET;
-            } else if (this->inputBuffer->equals("clr")) {
-              this->state = CONSOLE_CLEAR;
-            } else {
-              serial->println("Unknown command. Type ? for help.");
-              serial->print("> ");
-            }
-            this->inputBuffer = new String("");
-          } else if (isAlphaNumeric(d) || isPunct(d) || isSpace(d)) {
-            //Append input to buffer
-            this->inputBuffer->concat(d);
-            serial->print(d);
-          }
-        }
-      }
+      this->stateActive();
       break;
     case CONSOLE_RUN:
+      if(this->vm->halted == false) {
+        vm_step(this->vm);
+      } else {
+        serial->print("VM Halted. PC=0x");
+        serial->print(this->vm->PC);
+        serial->println(". Registers:");
+        this->printRegisters(true);
+        this->state = CONSOLE_ACTIVATE;
+      }
       break;
     case CONSOLE_STEP:
+      if (this->vm->halted == false) {
+        vm_step(this->vm);
+        if (this->vm->halted == true) {
+          serial->print("VM Halted. ");
+        }
+        serial->print("PC=0x");
+        serial->print(this->vm->PC);
+        serial->println(". Registers:");
+        this->printRegisters(true);
+      }
+      this->state = CONSOLE_ACTIVATE;
       break;
     case CONSOLE_EXAMINE:
+      this->stateExamine();
       break;
     case CONSOLE_VIEW:
-      //PC
-      serial->print(  "PC   ");
-      serial->print(this->vm->PC, HEX);
-      serial->print("\n");
-      
-      //Registers
-      serial->print(  "R    ");
-      for(i = 0; i < VM_REG_SIZE; i++) {
-        if (this->vm->R[i] < 0x10) {
-          serial->print("0");
-        }
-        serial->print(this->vm->R[i], HEX);
-        serial->print(" ");
-      }
-      serial->print("\n");
-
-      //Memory
-      serial->println("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
-      for(i = 0; i < VM_MEM_SIZE; i++) {
-        if (i % 16 == 0) {
-          if (i > 0) {
-            serial->print("\n");
-            if (i % 128 == 0 ) {
-              serial->println("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
-            }
-          }
-          serial->print("0x");
-          if (i < 0x10) {
-            serial->print("0");
-          }
-          serial->print(i, HEX);
-          serial->print(" ");
-        }
-        uint8_t m = this->vm->M[i];
-        if (m < 0x10) {
-          serial->print("0");
-        }
-        serial->print(m, HEX);
-        serial->print(" ");
-      }
-      serial->print("\n");
-
-      this->state = CONSOLE_ACTIVATE;
+      this->stateView();
       break;
     case CONSOLE_RESET:
       vm_reset(this->vm);
@@ -163,4 +162,183 @@ void Console::loop(HardwareSerial * serial) {
       break;
   }
 }
+
+void Console::stateActive() {
+  HardwareSerial * serial = this->serial;
+  char d;
+  if(serial->available()) {
+    while((d = (char)serial->read()) != -1) {
+      if (d == 27) {
+        //escape, deactivate console
+        this->inputBuffer = new String("");
+        serial->println("Console deactivated.");
+        this->state = CONSOLE_NONE;
+      } else if (d == '\n') {
+        //Finished input
+        serial->print("\n");
+        if (this->inputBuffer->equals("?")) {
+          serial->print(F(
+            "Commands\n"
+            "?   | This help\n"
+            "q   | Deactivate console\n"
+            "r   | Run until halted\n"
+            "s   | Step one instruction\n"
+            "e   | Examine/update\n"
+            "v   | Show vm status\n"
+            "rst | Reset PC and registers\n"
+            "clr | Reset and clear memory\n"
+          ));
+          serial->print("> ");
+        } else if (this->inputBuffer->equals("q")) {
+          serial->println("Console deactivated.");
+          this->state = CONSOLE_NONE;
+        } else if (this->inputBuffer->equals("r")) {
+          this->vm->halted = false;
+          this->state = CONSOLE_RUN;
+        } else if (this->inputBuffer->equals("s")) {
+          this->vm->halted = false;
+          this->state = CONSOLE_STEP;
+        } else if (this->inputBuffer->equals("e")) {
+          serial->println("Type q to return to console. Type ? for help.");
+          serial->print("E> ");
+          this->state = CONSOLE_EXAMINE;
+        } else if (this->inputBuffer->equals("v")) {
+          this->state = CONSOLE_VIEW;
+        } else if (this->inputBuffer->equals("rst")) {
+          this->state = CONSOLE_RESET;
+        } else if (this->inputBuffer->equals("clr")) {
+          this->state = CONSOLE_CLEAR;
+        } else {
+          serial->println("Unknown command. Type ? for help.");
+          serial->print("> ");
+        }
+        this->inputBuffer = new String("");
+      } else if (isAlphaNumeric(d) || isPunct(d) || isSpace(d)) {
+        //Append input to buffer
+        this->inputBuffer->concat(d);
+        serial->print(d);
+      }
+    }//while serial read
+  }//if serial available
+}//Console::stateActive
+
+void Console::stateView() {
+  int i;
+  
+  //PC
+  serial->print(  "PC   ");
+  serial->print(this->vm->PC, HEX);
+  serial->print("\n");
+  
+  //Registers
+  serial->print(  "R    ");
+  this->printRegisters(false);
+
+  //Memory
+  this->printMemory(0, VM_MEM_SIZE-1);
+
+  this->state = CONSOLE_ACTIVATE;
+}//Console::stateView
+
+void Console::stateExamine() {
+  char d;
+  int location, value;
+  if(serial->available()) {
+    while((d = (char)serial->read()) != -1) {
+      if (d == 27) {
+        //escape, go back to console
+        this->inputBuffer = new String("");
+        this->state = CONSOLE_ACTIVATE;
+      } else if (d == '\n') {
+        //Finished input
+        serial->print("\n");
+        this->inputBuffer->toUpperCase();
+        if (this->inputBuffer->equals("?")) {
+          serial->print(F(
+            "Commands\n"
+            "?       | This help\n"
+            "q       | Return to console\n"
+            "PC      | Show program counter\n"
+            "PC=yyyy | Set program counter\n"
+            "R       | Show register contents\n"
+            "Rx=yy   | Update register\n"
+            "Myy,zz  | Show zz bytes of memory starting at xx\n"
+            "Myy=zz  | Update memory at yy with zz, may repeat zz for subsequent bytes\n"
+            "x = 0-F, yy/zz = 00-FF\n"
+          ));
+        } else if (this->inputBuffer->equals("Q")) {
+          this->state = CONSOLE_ACTIVATE;
+        } else if (this->inputBuffer->equals("PC")) {
+          serial->println(this->vm->PC, HEX);
+        } else if (this->inputBuffer->startsWith("PC") && this->inputBuffer->indexOf("=") != -1) {
+           value = this->hexToDec(this->inputBuffer->substring(this->inputBuffer->indexOf("=")+1));
+           if (value >= 0 && value < VM_MEM_SIZE) {
+             this->vm->PC = value;
+           } else {
+             serial->println("Invalid value");
+           }
+        } else if (this->inputBuffer->equals("R")) {
+          this->printRegisters(true);
+        } else if (this->inputBuffer->startsWith("R") && this->inputBuffer->indexOf("=") != -1) {
+          location = this->hexToDec(this->inputBuffer->substring(1, this->inputBuffer->indexOf("=")));
+          value = this->hexToDec(this->inputBuffer->substring(this->inputBuffer->indexOf("=")+1));
+          if (location >= 0 && location < VM_REG_SIZE) {
+            if (value >= 0 && value <= 255) {
+              this->vm->R[location] = (uint8_t)value;
+            } else {
+              serial->println("Invalid value");
+            }
+          } else {
+            serial->println("Invalid register");
+          }
+        } else if (this->inputBuffer->startsWith("M") && this->inputBuffer->indexOf(",") != -1) {
+          location = this->hexToDec(this->inputBuffer->substring(1, this->inputBuffer->indexOf(",")));
+          value = this->hexToDec(this->inputBuffer->substring(this->inputBuffer->indexOf(",")+1));
+          if (value + location >= VM_MEM_SIZE) {
+            value = VM_MEM_SIZE-1;
+          }
+          if (location >= 0 && location < VM_MEM_SIZE) {
+            if (value > 0) {
+              this->printMemory(location, location + value);
+            } else {
+              serial->println("Invalid value");
+            }
+          } else {
+            serial->println("Invalid start location");
+          }
+        } else if (this->inputBuffer->startsWith("M") && this->inputBuffer->indexOf("=") != -1) {
+          location = this->hexToDec(this->inputBuffer->substring(1, this->inputBuffer->indexOf("=")));
+          String x = this->inputBuffer->substring(this->inputBuffer->indexOf("=")+1);
+          if (x.length() % 2 != 0) {
+            serial->println("Invalid data. 2 characters per byte required");
+          } else {
+            for(int i = 0; i < x.length(); i += 2) {
+              value = this->hexToDec(x.substring(i, i+2));
+              if (value >= 0 && value <= 255) {
+                this->vm->M[location++] = value;
+              } else {
+                serial->println(i);
+                serial->println(x.substring(i, i+2));
+                serial->println(value);
+                serial->println("Invalid data.");
+                break;
+              }
+            }
+          }
+        } else {
+          serial->println("Unknown command.");
+          serial->print("E> ");
+        }
+        if (this->state == CONSOLE_EXAMINE) {
+          serial->print("E> ");
+        }
+        this->inputBuffer = new String("");
+      } else if (isAlphaNumeric(d) || isPunct(d) || isSpace(d)) {
+        //Append input to buffer
+        this->inputBuffer->concat(d);
+        serial->print(d);
+      }
+    }//while serial read
+  }//if serial available
+}//Console::stateExamine
 
