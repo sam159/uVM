@@ -21,16 +21,48 @@ limitations under the License.
 
 #include "vm.h"
 #include "console.h"
+#include "memory.h"
 
 VM vm;
 Console console(&vm);
 
+//Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
+Memory mem(20000000, MSBFIRST, SPI_MODE0, 4);
+
 void setup() {
+  //Setup VM
   vm_reset(&vm);
   vm.error = vm_print_error;
   vm.syscall = vm_syscall;
-  Serial.begin(1200);
+  vm.readAddr = vm_read_addr;
+  vm.writeAddr = vm_write_addr;
+
+  //Start serial
+  Serial.begin(9600);
   console.setSerial(&Serial);
+
+  //Init memory
+  SPI.begin();
+  mem.setSize(VM_MEM_SIZE);
+  if (!mem.init()) {
+    Serial.println("Memory failed to init!");
+  } else {
+    mem.writeRange(0x55, 0, VM_MEM_SIZE);
+#ifdef TEST_DESTRUCTIVE
+    Serial.print("Testing ");
+    Serial.print(mem.getSize(), DEC);
+    Serial.print(" bytes memory... ");
+    unsigned long startTime = millis();
+    if (mem.test()) {
+      Serial.println("OK");
+    } else {
+      Serial.println("ERROR!");
+    }
+    Serial.print("Tested in ");
+    Serial.print(millis() - startTime, DEC);
+    Serial.println("ms");
+#endif
+  }
 }
 
 void loop() {
@@ -45,7 +77,8 @@ void vm_print_error(uint8_t err) {
       Serial.println("Halted. PC misaligned.");
       break;
     case VM_ERR_UNKNOWN_OP:
-      Serial.println("Halted. Unknown instruction. (this should never happen)");
+      //Will only happen if an instruction is not handled in the vm
+      Serial.println("Halted. Unknown instruction.");
       break;
     case VM_ERR_OUT_OF_BOUNDS:
       Serial.println("Halted. Operation out of bounds.");
@@ -78,5 +111,12 @@ uint8_t vm_syscall(VM* vm, uint8_t callno, uint8_t imm) {
       return 0;
   }
   return 0;
+}
+
+uint8_t vm_read_addr(uint16_t addr) {
+  return mem.read(addr);
+}
+void vm_write_addr(uint16_t addr, uint8_t data) {
+  mem.write(addr, data);
 }
 

@@ -83,7 +83,7 @@ void Console::printMemory(uint16_t from, uint16_t to) {
       serial->print(i, HEX);
       serial->print(" ");
     }
-    uint8_t m = this->vm->M[i];
+    uint8_t m = this->vm->readAddr(i);
     if (m < 0x10) {
       serial->print("0");
     }
@@ -95,8 +95,8 @@ void Console::printMemory(uint16_t from, uint16_t to) {
 
 void Console::loop() {
   HardwareSerial * serial = this->serial;
-  int i;
-      
+  uint32_t i;
+  
   switch(this->state) {
     case CONSOLE_NONE:
       serial->println("Press Enter to activate console.");
@@ -155,7 +155,7 @@ void Console::loop() {
     case CONSOLE_CLEAR:
       vm_reset(this->vm);
       for(i = 0; i < VM_MEM_SIZE; i++) {
-        this->vm->M[i] = 0;
+        this->vm->writeAddr(i, 0);
       }
       serial->println("VM Reset & Memory Cleared");
       this->state = CONSOLE_ACTIVATE;
@@ -315,7 +315,7 @@ void Console::stateExamine() {
             for(int i = 0; i < x.length(); i += 2) {
               value = this->hexToDec(x.substring(i, i+2));
               if (value >= 0 && value <= 255) {
-                this->vm->M[location++] = value;
+                this->vm->writeAddr(location++, value);
               } else {
                 serial->println(i);
                 serial->println(x.substring(i, i+2));

@@ -36,7 +36,6 @@ void vm_reset(VM *vm) {
 
 void vm_clear(VM *vm) {
     vm_reset(vm);
-    memset(&vm->M, 0, VM_MEM_SIZE);
 }
 
 inline uint8_t vm_get_r(VM *vm, uint8_t r) {
@@ -99,7 +98,7 @@ void vm_step(VM *vm) {
         vm->halted = true;
         return;
     }
-    uint16_t raw = (vm->M[PC] << 8) + vm->M[PC + 1];
+    uint16_t raw = (vm->readAddr(PC) << 8) + vm->readAddr(PC + 1);
     vm->PC += 2;
     inst.op = (uint8_t) (raw >> 12);
 
@@ -118,7 +117,7 @@ void vm_step(VM *vm) {
             temp16 = x;
             temp16 += inst.imm;
             if (temp16 < VM_MEM_SIZE) {
-              d = vm->M[temp16];
+              d = vm->readAddr(temp16);
             } else {
               if (vm->error != NULL) {
                 vm->error(VM_ERR_OUT_OF_BOUNDS);
@@ -132,7 +131,7 @@ void vm_step(VM *vm) {
             temp16 = vm_get_r(vm, inst.rd);
             temp16 += inst.imm;
             if (temp16 < VM_MEM_SIZE) {
-              vm->M[temp16] = x;
+              vm->writeAddr(temp16, x);
             } else {
               if (vm->error != NULL) {
                 vm->error(VM_ERR_OUT_OF_BOUNDS);

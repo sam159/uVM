@@ -20,7 +20,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stdbool.h>
 
-#define VM_MEM_SIZE 256
+#define VM_MEM_SIZE 0xFFFF
 #define VM_REG_SIZE 16
 
 #define OP_HLT 0x0
@@ -60,9 +60,10 @@ typedef struct VM_Instruction_t VM_Instruction;
 struct VM_t {
     uint8_t R[VM_REG_SIZE];
     uint8_t PC;
-    uint8_t M[VM_MEM_SIZE];
     uint8_t carry;
     bool halted;
+    uint8_t (*readAddr)(uint16_t addr);
+    void (*writeAddr)(uint16_t addr, uint8_t data);
     uint8_t (*syscall)(struct VM_t* vm, uint8_t callno, uint8_t imm);
     void (*error)(uint8_t err);
 };
