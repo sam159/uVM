@@ -98,7 +98,7 @@ void vm_step(VM *vm) {
         vm->halted = true;
         return;
     }
-    uint16_t raw = (vm->readAddr(PC) << 8) + vm->readAddr(PC + 1);
+    uint16_t raw = (vm->readAddr(PC, true) << 8) + vm->readAddr(PC + 1, true);
     vm->PC += 2;
     inst.op = (uint8_t) (raw >> 12);
 
@@ -117,7 +117,7 @@ void vm_step(VM *vm) {
             temp16 = x;
             temp16 += inst.imm;
             if (temp16 < VM_MEM_SIZE) {
-              d = vm->readAddr(temp16);
+              d = vm->readAddr(temp16, false);
             } else {
               if (vm->error != NULL) {
                 vm->error(VM_ERR_OUT_OF_BOUNDS);

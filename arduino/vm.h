@@ -62,7 +62,7 @@ struct VM_t {
     uint8_t PC;
     uint8_t carry;
     bool halted;
-    uint8_t (*readAddr)(uint16_t addr);
+    uint8_t (*readAddr)(uint16_t addr, bool instruction);
     void (*writeAddr)(uint16_t addr, uint8_t data);
     uint8_t (*syscall)(struct VM_t* vm, uint8_t callno, uint8_t imm);
     void (*error)(uint8_t err);

@@ -28,6 +28,8 @@ Console console(&vm);
 
 //Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
 Memory mem(20000000, MSBFIRST, SPI_MODE0, 4);
+MemoryCache ICache(64, mem);
+MemoryCache DCache(32, mem);
 
 void setup() {
   //Setup VM
@@ -47,7 +49,6 @@ void setup() {
   if (!mem.init()) {
     Serial.println("Memory failed to init!");
   } else {
-    mem.writeRange(0x55, 0, VM_MEM_SIZE);
 #ifdef TEST_DESTRUCTIVE
     Serial.print("Testing ");
     Serial.print(mem.getSize(), DEC);
@@ -67,7 +68,6 @@ void setup() {
 
 void loop() {
   console.loop();
-  
 }
 
 void vm_print_error(uint8_t err) {
@@ -113,10 +113,36 @@ uint8_t vm_syscall(VM* vm, uint8_t callno, uint8_t imm) {
   return 0;
 }
 
-uint8_t vm_read_addr(uint16_t addr) {
-  return mem.read(addr);
+uint8_t vm_read_addr(uint16_t addr, bool instruction) {
+  if (instruction) {
+    return ICache.read(addr);
+  } else {
+    return DCache.read(addr);
+  }
 }
+
 void vm_write_addr(uint16_t addr, uint8_t data) {
   mem.write(addr, data);
+  ICache.update(addr, data);
+  DCache.update(addr, data);
+}
+
+void print_cache_state(MemoryCache& cache) {
+  for(uint8_t i = 0; i < cache.getSize(); i++) {
+    MemoryCacheItem* item = cache.getItem(i);
+    
+    Serial.print(i);
+    Serial.print(": ");
+    if (item->valid) {
+      Serial.print(item->addr, HEX);
+      Serial.print("=");
+      Serial.print(item->data, HEX);
+      Serial.print(" TTL ");
+      Serial.print(item->ttl);
+      Serial.println("");
+    } else {
+      Serial.println("Nil");
+    }
+  }
 }
 

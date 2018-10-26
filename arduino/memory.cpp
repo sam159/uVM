@@ -125,3 +125,75 @@ bool Memory::test() {
   return true;
 }
 
+
+uint8_t MemoryCache::getSize() {
+  return this->cacheElements;
+}
+MemoryCacheItem* MemoryCache::getItem(uint8_t index) {
+  if (index < this->cacheElements) {
+    return &this->cache[index];
+  }
+  return NULL;
+}
+
+MemoryCache::MemoryCache(uint8_t cacheElements, Memory& memory) {
+  this->memory = &memory;
+  this->cache = (MemoryCacheItem*)calloc(cacheElements, sizeof(MemoryCacheItem));
+  this->cacheElements = cacheElements;
+}
+uint8_t MemoryCache::read(uint16_t addr) {
+  bool found = false;
+  uint8_t data = 0;
+  //Find in cache
+  for(uint8_t i = 0; i < this->cacheElements; i++) {
+    if (this->cache[i].valid) {
+      if (this->cache[i].addr == addr) {
+        if (this->cache[i].ttl < UINT8_MAX - 1) {
+          this->cache[i].ttl = UINT8_MAX;
+        }
+        data = this->cache[i].data;
+        found = true;
+      }
+    }
+  }
+  if (found) {
+    return data;
+  }
+  //Not found, read from memory and add to cache
+  data = this->memory->read(addr);
+
+  //Decrement TTLs
+  for(uint8_t i = 0; i < this->cacheElements; i++) {
+    if (this->cache[i].ttl > 0) {
+      this->cache[i].ttl--;
+    }
+  }
+
+  uint8_t foundTTL = UINT8_MAX;
+  uint8_t cacheSlot = 0;
+  for(uint8_t i = 0; i < this->cacheElements; i++) {
+    if (!this->cache[i].valid) {
+      cacheSlot = i;
+      break;
+    }
+    if (this->cache[i].ttl < foundTTL) {
+      cacheSlot = i;
+    }
+  }
+  
+  this->cache[cacheSlot].addr = addr;
+  this->cache[cacheSlot].data = data;
+  this->cache[cacheSlot].ttl = UINT8_MAX;
+  this->cache[cacheSlot].valid = true;
+  
+  return data;
+}
+void MemoryCache::update(uint16_t addr, uint8_t data) {
+  for(uint8_t i = 0; i < this->cacheElements; i++) {
+    if (this->cache[i].valid && this->cache[i].addr == addr) {
+      this->cache[i].data = data;
+      break;
+    }
+  }
+}
+

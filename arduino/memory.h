@@ -54,4 +54,24 @@ class Memory {
     bool test();
 };
 
+struct MemoryCacheItem_t {
+  uint16_t addr;
+  uint8_t data;
+  uint8_t ttl;
+  bool valid;
+};
+typedef struct MemoryCacheItem_t MemoryCacheItem;
+
+class MemoryCache {
+    MemoryCacheItem *cache = NULL;
+    Memory *memory = NULL;
+    uint8_t cacheElements = 0;
+  public:
+    MemoryCache(uint8_t cacheElements, Memory& memory);
+    uint8_t getSize();
+    MemoryCacheItem* getItem(uint8_t index);
+    uint8_t read(uint16_t addr);
+    void update(uint16_t addr, uint8_t data);
+};
+
 #endif //UVM_MEMORY_H

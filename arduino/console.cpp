@@ -83,7 +83,7 @@ void Console::printMemory(uint16_t from, uint16_t to) {
       serial->print(i, HEX);
       serial->print(" ");
     }
-    uint8_t m = this->vm->readAddr(i);
+    uint8_t m = this->vm->readAddr(i, false);
     if (m < 0x10) {
       serial->print("0");
     }
@@ -235,7 +235,8 @@ void Console::stateView() {
   this->printRegisters(false);
 
   //Memory
-  this->printMemory(0, VM_MEM_SIZE-1);
+  this->printMemory(0, 0xFF);
+  serial->println("Output limited to 00-FF");
 
   this->state = CONSOLE_ACTIVATE;
 }//Console::stateView
