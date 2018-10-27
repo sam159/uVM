@@ -43,7 +43,7 @@ class Memory {
     void start();
     void end();
   public:
-    Memory(uint32_t clock, uint8_t bitOrder, uint8_t dataMode, uint8_t csPin);
+    Memory(uint8_t csPin);
     uint16_t getSize();
     void setSize(uint16_t memSize);
     bool init();

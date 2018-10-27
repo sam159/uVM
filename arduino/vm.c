@@ -16,7 +16,7 @@ limitations under the License.
 
 #include <stdlib.h>
 #include <string.h>
-#include "vm.h"
+#include "VM.h"
 
 VM *new_vm() {
     VM *vm = calloc(1, sizeof(VM));

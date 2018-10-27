@@ -18,7 +18,7 @@ limitations under the License.
 #define UVM_CONSOLE_H
 
 #include <HardwareSerial.h>
-#include "vm.h"
+#include "VM.h"
 
 enum ConsoleState_t {
   CONSOLE_NONE,

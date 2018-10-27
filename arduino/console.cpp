@@ -17,7 +17,7 @@ limitations under the License.
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <errno.h>
-#include "console.h"
+#include "Console.h"
 
 Console::Console(VM* _vm) {
   this->state = CONSOLE_NONE;

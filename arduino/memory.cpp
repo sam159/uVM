@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-#include "memory.h"
+#include "Memory.h"
 
-Memory::Memory(uint32_t clock, uint8_t bitOrder, uint8_t dataMode, uint8_t csPin) {
+Memory::Memory(uint8_t csPin) {
   //Set cs pin high
   this->csPin = csPin;
   pinMode(csPin, OUTPUT);
@@ -24,7 +24,7 @@ Memory::Memory(uint32_t clock, uint8_t bitOrder, uint8_t dataMode, uint8_t csPin
   //Default to 64k ram
   this->memSize = 0xFFFF;
   //Store spi setting
-  this->setting = SPISettings(clock, bitOrder, dataMode);
+  this->setting = SPISettings(20000000, MSBFIRST, SPI_MODE0);
 }
 
 void Memory::start() {

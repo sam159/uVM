@@ -19,15 +19,17 @@ limitations under the License.
  * Hello World: 0x311833021210c0323401411412103416e4203406d400000048656c6c6f20576f726c640a
  */
 
-#include "vm.h"
-#include "console.h"
-#include "memory.h"
+#include "VM.h"
+#include "Console.h"
+#include "Memory.h"
+#include "ShiftInput.h"
 
 VM vm;
 Console console(&vm);
+ShiftInput buttons(1, 14, 15, 0, 16);
 
 //Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
-Memory mem(20000000, MSBFIRST, SPI_MODE0, 4);
+Memory mem(4);
 MemoryCache ICache(64, mem);
 MemoryCache DCache(32, mem);
 
@@ -68,6 +70,17 @@ void setup() {
 
 void loop() {
   console.loop();
+
+  if (buttons.updateInput()) {
+    uint8_t *input = buttons.getInput();
+    for(uint8_t i = 0; i < buttons.getChipCount(); i++) {
+      Serial.print("Button Group ");
+      Serial.print(i);
+      Serial.print(" = ");
+      Serial.print(input[i], BIN);
+      Serial.println();
+    }
+  }
 }
 
 void vm_print_error(uint8_t err) {
