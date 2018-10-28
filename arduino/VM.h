@@ -59,7 +59,7 @@ typedef struct VM_Instruction_t VM_Instruction;
 
 struct VM_t {
     uint8_t R[VM_REG_SIZE];
-    uint8_t PC;
+    uint16_t PC;
     uint8_t carry;
     bool halted;
     uint8_t (*readAddr)(uint16_t addr, bool instruction);
@@ -78,6 +78,8 @@ void vm_reset(VM *vm);
 void vm_clear(VM *vm);
 
 uint8_t vm_get_r(VM *vm, uint8_t r);
+
+uint16_t vm_get_rx(VM *vm, uint8_t r);
 
 void vm_put_r(VM *vm, uint8_t r, uint8_t v);
 

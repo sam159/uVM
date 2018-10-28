@@ -41,7 +41,7 @@ class Console {
     HardwareSerial *serial;
     
     int hexToDec(String);
-    void printRegisters(bool);
+    void printRegisters(uint8_t);
     void printMemory(uint16_t, uint16_t);
     
     void stateActive();

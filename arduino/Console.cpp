@@ -39,15 +39,45 @@ void Console::setSerial(HardwareSerial *serial) {
   this->serial = serial;
 }
 
-void Console::printRegisters(bool header) {
-  if (header) {
-    serial->println(" 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+void Console::printRegisters(uint8_t padding) {
+  if (padding < 3) {
+    padding = 3;
   }
-  for(short i = 0; i < VM_REG_SIZE; i++) {
-    if (this->vm->R[i] < 0x10) {
+
+  serial->print('R');
+  for(uint8_t x = 1; x < padding; x++) serial->print(' ');
+  serial->println(" 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+
+  for(uint8_t x = 0; x < padding; x++) serial->print(' ');
+  for(uint8_t i = 0; i < 16; i++) {
+    uint8_t r = vm_get_r(vm, i);
+    if (r < 0x10) {
       serial->print("0");
     }
-    serial->print(this->vm->R[i], HEX);
+    serial->print(r, HEX);
+    serial->print(" ");
+  }
+  serial->print("\n");
+
+  serial->print("RX");
+  for(uint8_t x = 2; x < padding; x++) serial->print(' ');
+  serial->println("                    AX   BX   CX   DX   EX   FX");
+  
+  serial->print(  "                  ");
+  for(uint8_t x = 0; x < padding; x++) serial->print(' ');
+  for(uint8_t i = 0xA; i <= 0xF; i++) {
+    uint16_t rx = vm_get_rx(vm, i);
+    uint8_t rxh = (rx & 0xFF00) >> 8,
+            rxl = rx & 0xFF;
+
+    if (rxh < 0x10) {
+      serial->print("0");
+    }
+    serial->print(rxh, HEX);
+    if (rxl < 0x10) {
+      serial->print("0");
+    }
+    serial->print(rxl, HEX);
     serial->print(" ");
   }
   serial->print("\n");
@@ -122,9 +152,9 @@ void Console::loop() {
         vm_step(this->vm);
       } else {
         serial->print("VM Halted. PC=0x");
-        serial->print(this->vm->PC);
+        serial->print(this->vm->PC, HEX);
         serial->println(". Registers:");
-        this->printRegisters(true);
+        this->printRegisters(0);
         this->state = CONSOLE_ACTIVATE;
       }
       break;
@@ -135,9 +165,9 @@ void Console::loop() {
           serial->print("VM Halted. ");
         }
         serial->print("PC=0x");
-        serial->print(this->vm->PC);
+        serial->print(this->vm->PC, HEX);
         serial->println(". Registers:");
-        this->printRegisters(true);
+        this->printRegisters(0);
       }
       this->state = CONSOLE_ACTIVATE;
       break;
@@ -223,16 +253,24 @@ void Console::stateActive() {
 }//Console::stateActive
 
 void Console::stateView() {
-  int i;
   
   //PC
-  serial->print(  "PC   ");
+  serial->print("PC   ");
+  if (this->vm->PC < 0x1000) {
+    serial->print("0");
+  }
+  if (this->vm->PC < 0x100) {
+    serial->print("0");
+  }
+  if (this->vm->PC < 0x10) {
+    serial->print("0");
+  }
   serial->print(this->vm->PC, HEX);
   serial->print("\n");
   
   //Registers
-  serial->print(  "R    ");
-  this->printRegisters(false);
+  this->printRegisters(5);
+  serial->print("\n");
 
   //Memory
   this->printMemory(0, 0xFF);
@@ -243,7 +281,7 @@ void Console::stateView() {
 
 void Console::stateExamine() {
   char d;
-  int location, value;
+  uint16_t location, value;
   if(serial->available()) {
     while((d = (char)serial->read()) != -1) {
       if (d == 27) {
@@ -279,7 +317,7 @@ void Console::stateExamine() {
              serial->println("Invalid value");
            }
         } else if (this->inputBuffer->equals("R")) {
-          this->printRegisters(true);
+          this->printRegisters(0);
         } else if (this->inputBuffer->startsWith("R") && this->inputBuffer->indexOf("=") != -1) {
           location = this->hexToDec(this->inputBuffer->substring(1, this->inputBuffer->indexOf("=")));
           value = this->hexToDec(this->inputBuffer->substring(this->inputBuffer->indexOf("=")+1));
@@ -313,7 +351,7 @@ void Console::stateExamine() {
           if (x.length() % 2 != 0) {
             serial->println("Invalid data. 2 characters per byte required");
           } else {
-            for(int i = 0; i < x.length(); i += 2) {
+            for(unsigned int i = 0; i < x.length(); i += 2) {
               value = this->hexToDec(x.substring(i, i+2));
               if (value >= 0 && value <= 255) {
                 this->vm->writeAddr(location++, value);
@@ -328,7 +366,6 @@ void Console::stateExamine() {
           }
         } else {
           serial->println("Unknown command.");
-          serial->print("E> ");
         }
         if (this->state == CONSOLE_EXAMINE) {
           serial->print("E> ");
