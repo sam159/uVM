@@ -1,0 +1,12 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP 23LCV512
+D 512 Kbit SPI Serial SRAM with Battery Backup and SDI Interface
+K sram serial spi
+$ENDCMP
+#
+$CMP 74HC165
+D 8-Bit Parallel-Load Shift Register
+$ENDCMP
+#
+#End Doc Library

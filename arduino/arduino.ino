@@ -29,7 +29,7 @@ Console console(&vm);
 ShiftInput buttons(1, 14, 15, 0, 16);
 
 //Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
-Memory mem(4);
+Memory mem(10);
 MemoryCache ICache(64, mem);
 MemoryCache DCache(32, mem);
 
