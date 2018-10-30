@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name uvm)(type KiCad)(uri ${KIPRJMOD}/uvm.pretty)(options "")(descr ""))
+)

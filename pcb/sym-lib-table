@@ -1,4 +1,4 @@
 (sym_lib_table
-  (lib (name uvm)(type Legacy)(uri C:/Users/Sam/Projects/uvm/pcb/uvm/uvm.lib)(options "")(descr ""))
+  (lib (name uvm)(type Legacy)(uri ${KIPRJMOD}/uvm.lib)(options "")(descr ""))
   (lib (name uvm-rescue)(type Legacy)(uri ${KIPRJMOD}/uvm-rescue.lib)(options "")(descr ""))
 )
