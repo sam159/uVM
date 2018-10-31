@@ -155,7 +155,7 @@ MOSI
 Text Label 600  6900 0    50   ~ 0
 MISO
 $Comp
-L Connector:Barrel_Jack_MountingPin J1
+L Connector:Barrel_Jack_Switch J1
 U 1 1 5BD78797
 P 1200 1500
 F 0 "J1" H 1255 1825 50  0000 C CNN
@@ -490,7 +490,7 @@ U 1 1 5BDB251E
 P 2750 8150
 F 0 "J3" H 2670 8567 50  0000 C CNN
 F 1 "FDTI Serial" H 2670 8476 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical_SMD_Pin1Left" H 2750 8150 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical" H 2750 8150 50  0001 C CNN
 F 3 "~" H 2750 8150 50  0001 C CNN
 	1    2750 8150
 	-1   0    0    -1  
@@ -3172,19 +3172,6 @@ D_STATUS_IN
 Wire Wire Line
 	11000 6700 11500 6700
 $Comp
-L power:+5V #PWR011
-U 1 1 5C2CD5A8
-P 4800 2350
-F 0 "#PWR011" H 4800 2200 50  0001 C CNN
-F 1 "+5V" V 4815 2478 50  0000 L CNN
-F 2 "" H 4800 2350 50  0001 C CNN
-F 3 "" H 4800 2350 50  0001 C CNN
-	1    4800 2350
-	0    -1   -1   0   
-$EndComp
-Wire Wire Line
-	4800 2350 4900 2350
-$Comp
 L 74xx:74HC595 U18
 U 1 1 5C5ADCB4
 P 10600 8150
@@ -3680,7 +3667,7 @@ F6 "INP_SWINH" I L 5150 10000 50
 F7 "RESET" I R 6050 9700 50 
 F8 "IO_INT" O R 6050 9850 50 
 F9 "SDA" B R 6050 10000 50 
-F10 "SCK" I R 6050 10150 50 
+F10 "SCL" I R 6050 10150 50 
 $EndSheet
 Wire Wire Line
 	2900 5000 3400 5000
@@ -3733,7 +3720,7 @@ D_REG_IN
 Text Label 3400 4200 2    50   ~ 0
 DISP_CLK
 Text Label 3400 4300 2    50   ~ 0
-DISK_RCLK
+DISP_RCLK
 Wire Wire Line
 	2900 3100 3400 3100
 Wire Wire Line
@@ -3815,7 +3802,7 @@ IO_INT
 Text Label 6450 10000 2    50   ~ 0
 SDA
 Text Label 6450 10150 2    50   ~ 0
-SCK
+SCL
 Text Label 3400 3200 2    50   ~ 0
 IO_INT
 $Comp
@@ -4050,10 +4037,12 @@ Wire Wire Line
 Connection ~ 1700 1250
 Connection ~ 2250 1250
 Wire Wire Line
-	1500 1750 1500 1850
+	1500 1600 1500 1500
+Connection ~ 1500 1600
 Wire Wire Line
-	1500 1850 1200 1850
-Wire Wire Line
-	1200 1850 1200 1800
-Connection ~ 1500 1750
+	4450 2350 4900 2350
+Text Label 4450 2350 0    50   ~ 0
+RESET
+Text Label 1850 1250 0    50   ~ 0
+VIN
 $EndSCHEMATC
