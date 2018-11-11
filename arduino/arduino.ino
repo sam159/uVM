@@ -16,22 +16,31 @@ limitations under the License.
 
 /**
  * Example Programs
- * Hello World: 0x311833021210c0323401411412103416e4203406d400000048656c6c6f20576f726c640a
+ * Hello World: 311833021210c0323401411412103416e4203406d400000048656c6c6f20576f726c640a
  */
+
+//Options
+//#define TEST_DESTRUCTIVE
 
 #include "VM.h"
 #include "Console.h"
 #include "Memory.h"
 #include "ShiftInput.h"
+#include "ShiftOutput.h"
+#include "Interface.h"
+#include "pins.h"
+#include "util.h"
+
+//Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
+Memory mem(PIN_MEMORY_SEL);
+MemoryCache ICache(64, mem);
+MemoryCache DCache(32, mem);
 
 VM vm;
 Console console(&vm);
-ShiftInput buttons(1, 14, 15, 0, 16);
-
-//Expecting a Microchip 23LCV512 connected over MOSI/MISO/MCLK
-Memory mem(10);
-MemoryCache ICache(64, mem);
-MemoryCache DCache(32, mem);
+ShiftInput inputs(3, PIN_INP_LOAD, PIN_INP_CLK, 0, PIN_INP_SER);
+ShiftOutput disp(PIN_DISP_EN, PIN_DISP_CLK, PIN_DISP_RCLK, PIN_DISP_OUT);
+Interface io(&vm, &mem, &inputs, &disp, PIN_SW_REG);
 
 void setup() {
   //Setup VM
@@ -41,15 +50,48 @@ void setup() {
   vm.readAddr = vm_read_addr;
   vm.writeAddr = vm_write_addr;
 
+  //Display
+  for(uint8_t i = 0; i < 16; i++) {
+    disp.output((uint8_t)0, true);
+  }
+  disp.clockOutput();
+  disp.enable();
+
+  //Interface
+  io.init();
+
+  //Disable input inhibit lines (Layout issue on Rev.A board)
+  pinMode(PIN_INP_ADDR_INH, OUTPUT);
+  pinMode(PIN_INP_SW_INH, OUTPUT);
+  digitalWrite(PIN_INP_ADDR_INH, LOW);
+  digitalWrite(PIN_INP_SW_INH, LOW);
+
   //Start serial
   Serial.begin(9600);
   console.setSerial(&Serial);
 
+  //Speed control
+  pinMode(PIN_SPEED, INPUT);
+
   //Init memory
-  SPI.begin();
   mem.setSize(VM_MEM_SIZE);
   if (!mem.init()) {
     Serial.println("Memory failed to init!");
+    Serial.print("Tried to set MODE_SEQ. Current mode is ");
+    switch(mem.readMode()) {
+      case MODE_BYTE:
+        Serial.println("MODE_BYTE");
+        break;
+      case MODE_PAGE:
+        Serial.println("MODE_PAGE");
+        break;
+      case MODE_SEQ:
+        Serial.println("MODE_SEQ");
+        break;
+      default:
+        Serial.println(mem.readMode());
+        break;
+    }
   } else {
 #ifdef TEST_DESTRUCTIVE
     Serial.print("Testing ");
@@ -68,19 +110,25 @@ void setup() {
   }
 }
 
-void loop() {
-  console.loop();
+unsigned long int nextRun = 0;
 
-  if (buttons.updateInput()) {
-    uint8_t *input = buttons.getInput();
-    for(uint8_t i = 0; i < buttons.getChipCount(); i++) {
-      Serial.print("Button Group ");
-      Serial.print(i);
-      Serial.print(" = ");
-      Serial.print(input[i], BIN);
-      Serial.println();
+void loop() {
+  if (vm.run) {
+    if (nextRun == 0 || nextRun < millis()) {
+      vm_step(&vm);
+      int delayTime = analogRead(PIN_SPEED);
+      if (delayTime < 10) {
+        nextRun = 0;
+      } else {
+        nextRun = millis() + delayTime;
+      }
     }
+  } else {
+    nextRun = 0;
   }
+  
+  console.loop();
+  io.loop();
 }
 
 void vm_print_error(uint8_t err) {
@@ -138,24 +186,5 @@ void vm_write_addr(uint16_t addr, uint8_t data) {
   mem.write(addr, data);
   ICache.update(addr, data);
   DCache.update(addr, data);
-}
-
-void print_cache_state(MemoryCache& cache) {
-  for(uint8_t i = 0; i < cache.getSize(); i++) {
-    MemoryCacheItem* item = cache.getItem(i);
-    
-    Serial.print(i);
-    Serial.print(": ");
-    if (item->valid) {
-      Serial.print(item->addr, HEX);
-      Serial.print("=");
-      Serial.print(item->data, HEX);
-      Serial.print(" TTL ");
-      Serial.print(item->ttl);
-      Serial.println("");
-    } else {
-      Serial.println("Nil");
-    }
-  }
 }
 

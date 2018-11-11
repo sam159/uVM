@@ -61,6 +61,7 @@ struct VM_t {
     uint8_t R[VM_REG_SIZE];
     uint16_t PC;
     uint8_t carry;
+    bool run;
     bool halted;
     uint8_t (*readAddr)(uint16_t addr, bool instruction);
     void (*writeAddr)(uint16_t addr, uint8_t data);

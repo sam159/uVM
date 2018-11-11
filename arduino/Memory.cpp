@@ -25,6 +25,7 @@ Memory::Memory(uint8_t csPin) {
   this->memSize = 0xFFFF;
   //Store spi setting
   this->setting = SPISettings(20000000, MSBFIRST, SPI_MODE0);
+  SPI.begin();
 }
 
 void Memory::start() {
@@ -38,18 +39,23 @@ void Memory::end() {
 
 bool Memory::init() {
   //Set mode to sequential access (should be default mode)
-  this->start();
-  SPI.transfer(INSTR_WRMR);
-  SPI.transfer(MODE_SEQ);
-  this->end();
+  this->setMode(MODE_SEQ);
 
   //Verify that it was set
+  return this->readMode() == MODE_SEQ;
+}
+void Memory::setMode(MemoryMode mode) {
+  this->start();
+  SPI.transfer(INSTR_WRMR);
+  SPI.transfer(mode);
+  this->end();
+}
+MemoryMode Memory::readMode() {
   this->start();
   SPI.transfer(INSTR_RDMR);
-  uint8_t mode = SPI.transfer(0);
+  MemoryMode mode = (MemoryMode)SPI.transfer(0);
   this->end();
-  
-  return mode == MODE_SEQ;
+  return mode;
 }
 
 uint16_t Memory::getSize() {
@@ -126,6 +132,12 @@ bool Memory::test() {
 }
 
 
+
+MemoryCache::MemoryCache(uint8_t cacheElements, Memory& memory) {
+  this->memory = &memory;
+  this->cache = (MemoryCacheItem*)calloc(cacheElements, sizeof(MemoryCacheItem));
+  this->cacheElements = cacheElements;
+}
 uint8_t MemoryCache::getSize() {
   return this->cacheElements;
 }
@@ -134,12 +146,6 @@ MemoryCacheItem* MemoryCache::getItem(uint8_t index) {
     return &this->cache[index];
   }
   return NULL;
-}
-
-MemoryCache::MemoryCache(uint8_t cacheElements, Memory& memory) {
-  this->memory = &memory;
-  this->cache = (MemoryCacheItem*)calloc(cacheElements, sizeof(MemoryCacheItem));
-  this->cacheElements = cacheElements;
 }
 uint8_t MemoryCache::read(uint16_t addr) {
   bool found = false;
@@ -194,6 +200,12 @@ void MemoryCache::update(uint16_t addr, uint8_t data) {
       this->cache[i].data = data;
       break;
     }
+  }
+}
+
+void MemoryCache::clear() {
+  for(uint8_t i = 0; i < this->cacheElements; i++) {
+    this->cache[i].valid = false;
   }
 }
 

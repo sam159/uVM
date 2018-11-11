@@ -35,8 +35,11 @@ ShiftInput::ShiftInput(uint8_t chipCount, uint8_t loadPin, uint8_t clockPin, uin
   }
 }
 
-uint8_t* ShiftInput::getInput() {
-  return this->input;
+uint8_t ShiftInput::getInput(uint8_t chip) {
+  if (chip <= this->chipCount) {
+    return this->input[chip];
+  }
+  return 0;
 }
 
 uint8_t ShiftInput::getChipCount() {

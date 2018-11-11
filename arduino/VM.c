@@ -31,6 +31,7 @@ void vm_reset(VM *vm) {
     memset(vm->R, 0, sizeof(uint8_t) * VM_REG_SIZE);
     vm->PC = 0;
     vm->carry = 0;
+    vm->run = false;
     vm->halted = false;
 }
 
@@ -116,6 +117,7 @@ void vm_step(VM *vm) {
             vm->error(VM_ERR_MISALIGN);
         }
         vm->halted = true;
+        vm->run = false;
         return;
     }
     uint16_t raw = (vm->readAddr(PC, true) << 8) + vm->readAddr(PC + 1, true);
@@ -123,6 +125,7 @@ void vm_step(VM *vm) {
     inst.op = (uint8_t) (raw >> 12);
 
     if (vm->halted) {
+        vm->run = false;
         return;
     }
 
@@ -219,22 +222,25 @@ void vm_step(VM *vm) {
             break;
         case OP_JMP:
             vm_decode_Q(&inst, raw);
-            vm->PC = vm_get_rx(vm, inst.rd);
+            rd = vm_get_rx(vm, inst.rd);
+            vm->PC = rd;
             break;
         case OP_JEQ:
             vm_decode_S(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
+            rd = vm_get_rx(vm, inst.rd);
             if (rx == ry) {
-                vm->PC = vm_get_rx(vm, inst.rd);
+                vm->PC = rd;
             }
             break;
         case OP_JLT:
             vm_decode_S(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
+            rd = vm_get_rx(vm, inst.rd);
             if (rx < ry) {
-                vm->PC = vm_get_rx(vm, inst.rd);
+                vm->PC = rd;
             }
             break;
         case OP_HLT:
@@ -248,4 +254,8 @@ void vm_step(VM *vm) {
             break;
     }
     vm_put_r(vm, inst.rd, rd);
+    
+    if (vm->halted) {
+        vm->run = false;
+    }
 }

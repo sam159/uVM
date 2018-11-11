@@ -124,7 +124,6 @@ void Console::printMemory(uint16_t from, uint16_t to) {
 }
 
 void Console::loop() {
-  HardwareSerial * serial = this->serial;
   uint32_t i;
   
   switch(this->state) {
@@ -148,9 +147,7 @@ void Console::loop() {
       this->stateActive();
       break;
     case CONSOLE_RUN:
-      if(this->vm->halted == false) {
-        vm_step(this->vm);
-      } else {
+      if(this->vm->halted) {
         serial->print("VM Halted. PC=0x");
         serial->print(this->vm->PC, HEX);
         serial->println(". Registers:");
@@ -223,7 +220,9 @@ void Console::stateActive() {
           serial->println("Console deactivated.");
           this->state = CONSOLE_NONE;
         } else if (this->inputBuffer->equals("r")) {
+          serial->println("VM Running...");
           this->vm->halted = false;
+          this->vm->run = true;
           this->state = CONSOLE_RUN;
         } else if (this->inputBuffer->equals("s")) {
           this->vm->halted = false;
@@ -365,6 +364,7 @@ void Console::stateExamine() {
             }
           }
         } else {
+          serial->println(this->inputBuffer->c_str());
           serial->println("Unknown command.");
         }
         if (this->state == CONSOLE_EXAMINE) {

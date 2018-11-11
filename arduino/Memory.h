@@ -46,6 +46,8 @@ class Memory {
     Memory(uint8_t csPin);
     uint16_t getSize();
     void setSize(uint16_t memSize);
+    void setMode(MemoryMode mode);
+    MemoryMode readMode();
     bool init();
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
@@ -72,6 +74,7 @@ class MemoryCache {
     MemoryCacheItem* getItem(uint8_t index);
     uint8_t read(uint16_t addr);
     void update(uint16_t addr, uint8_t data);
+    void clear();
 };
 
 #endif //UVM_MEMORY_H

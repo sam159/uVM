@@ -14,23 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-#ifndef UVM_SHIFTINPUT_H
-#define UVM_SHIFTINPUT_H
+#ifndef UVM_PINS_H
+#define UVM_PINS_H
 
-#include <stdint.h>
+//Display / Shift register output
+#define PIN_DISP_EN   8
+#define PIN_DISP_CLK  16
+#define PIN_DISP_RCLK 17
+#define PIN_DISP_OUT  15
 
-class ShiftInput {
-    uint8_t *input;
-    uint8_t chipCount;
-    uint8_t loadPin;
-    uint8_t clockPin;
-    uint8_t clockInhPin;
-    uint8_t dataPin;
-  public:
-    ShiftInput(uint8_t chipCount, uint8_t loadPin, uint8_t clockPin, uint8_t clockInhPin, uint8_t dataPin);
-    uint8_t getChipCount();
-    uint8_t getInput(uint8_t chip);
-    bool updateInput();
-};
+//Inputs
+#define PIN_SPEED        14
+#define PIN_SW_REG       7
+#define PIN_INP_SER      2
+#define PIN_INP_CLK      3
+#define PIN_INP_ADDR_INH 4
+#define PIN_INP_SW_INH   5
+#define PIN_INP_LOAD     6
 
-#endif //UVM_SHIFTINPUT_H
+//I/O
+#define PIN_IO_INT 9
+
+//Memory
+#define PIN_MEMORY_SEL 10
+
+#endif

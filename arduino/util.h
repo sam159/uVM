@@ -14,23 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-#ifndef UVM_SHIFTINPUT_H
-#define UVM_SHIFTINPUT_H
+#ifndef UVM_UTIL_H
+#define UVM_UTIL_H
 
 #include <stdint.h>
 
-class ShiftInput {
-    uint8_t *input;
-    uint8_t chipCount;
-    uint8_t loadPin;
-    uint8_t clockPin;
-    uint8_t clockInhPin;
-    uint8_t dataPin;
-  public:
-    ShiftInput(uint8_t chipCount, uint8_t loadPin, uint8_t clockPin, uint8_t clockInhPin, uint8_t dataPin);
-    uint8_t getChipCount();
-    uint8_t getInput(uint8_t chip);
-    bool updateInput();
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#endif //UVM_SHIFTINPUT_H
+uint8_t reverse8(uint8_t b);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
