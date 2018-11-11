@@ -22,9 +22,9 @@ Prototype.
 
 *   **U2 - CS floating**
 
-    CS is not pulled high and is floating when not driven by U1. May interfere with flashing via ICSP.
+    CS is not pulled high and is floating when not driven by U1. May interfere with flashing U1 via ICSP.
 
-    Connect U1-1 to 5V via 10K resistor.
+    Connect U2-1 to 5V via 10K resistor if using ICSP.
 
 *   **ICSP Header - Incorrect footprint used**
 
