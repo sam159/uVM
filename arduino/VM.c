@@ -71,6 +71,9 @@ inline uint16_t vm_get_rx(VM *vm, uint8_t r) {
 }
 
 inline void vm_put_r(VM *vm, uint8_t r, uint8_t v) {
+    if (r == 0) {
+      return;
+    }
     if (r < VM_REG_SIZE) {
         vm->R[r] = v;
     }
@@ -164,12 +167,7 @@ void vm_step(VM *vm) {
             rd = inst.imm;
             break;
         case OP_ADD:
-            vm_decode_S(&inst, raw);
             vm->carry = 0;
-            rx = vm_get_r(vm, inst.rx);
-            ry = vm_get_r(vm, inst.ry);
-            rd = rx + ry;
-            break;
         case OP_ADC:
             vm_decode_S(&inst, raw);
             rx = vm_get_r(vm, inst.rx);

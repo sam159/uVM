@@ -55,17 +55,19 @@ void Interface::loop() {
     uint8_t addrInputL = ~reverse8(input->getInput(1));
     uint8_t swInput = input->getInput(2);
     uint16_t addrInput = (addrInputH << 8) + addrInputL;
+
     //Check for buttons on rising edge
     if ((swLast & SW_RUN) == 0 && (swInput & SW_RUN) == SW_RUN) {
       if (vm->run) {
         vm->run = false;
       } else {
-        vm->run = true;
-        vm->halted = false;
+        if (vm->halted == false) {
+          vm->run = true;
+        }
       }
     }
     else if ((swLast & SW_STEP) == 0 && (swInput & SW_STEP) == SW_STEP) {
-      if (vm->run == false) {
+      if (vm->run == false && vm->halted == false) {
         vm->halted = false;
         vm_step(vm);
       }
@@ -148,10 +150,6 @@ void Interface::loop() {
   //Program counter and Instruction
   uint16_t pc = vm->PC;
   uint16_t instr = (mem->read(pc) << 8) + mem->read(pc + 1);
-//  disp->output((uint8_t)0xF);
-//  disp->output((uint8_t)0xF);
-//  disp->output((uint8_t)0xF);
-//  disp->output((uint8_t)0xF);
   disp->output16(instr);
   disp->output16(pc);
 

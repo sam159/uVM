@@ -20,10 +20,12 @@ limitations under the License.
 ShiftInput::ShiftInput(uint8_t chipCount, uint8_t loadPin, uint8_t clockPin, uint8_t clockInhPin, uint8_t dataPin) {
   this->input = (uint8_t*)calloc(chipCount, sizeof(uint8_t));
   this->chipCount = chipCount;
+  
   this->loadPin = loadPin;
   this->clockPin = clockPin;
   this->clockInhPin = clockInhPin;
   this->dataPin = dataPin;
+  
   pinMode(loadPin, OUTPUT);
   digitalWrite(loadPin, HIGH);
   pinMode(clockPin, OUTPUT);
@@ -47,23 +49,39 @@ uint8_t ShiftInput::getChipCount() {
 }
 
 bool ShiftInput::updateInput() {
+  uint8_t dataBit = digitalPinToBitMask(this->dataPin);
+  volatile uint8_t *dataPort = portInputRegister(digitalPinToPort(this->dataPin));
+  uint8_t loadBit = digitalPinToBitMask(this->loadPin);
+  volatile uint8_t *loadPort = portOutputRegister(digitalPinToPort(this->loadPin));
+  uint8_t clkBit = digitalPinToBitMask(this->clockPin);
+  volatile uint8_t *clkPort = portOutputRegister(digitalPinToPort(this->clockPin));
+  uint8_t clkInhBit = 0;
+  volatile uint8_t *clkInhPort = NULL;
+  if (this->clockInhPin > 0){
+    clkInhBit = digitalPinToBitMask(this->clockInhPin);
+    clkInhPort = portOutputRegister(digitalPinToPort(this->clockInhPin));
+  }
+  uint8_t oldSREG = SREG;
+  cli();
+  
   //Load values
-  digitalWrite(this->loadPin, LOW);
-  digitalWrite(this->clockPin, HIGH);
-  digitalWrite(this->loadPin, HIGH);
-  digitalWrite(this->clockPin, LOW);
+  *loadPort &= ~loadBit; //Load Low
+  *clkPort |= clkBit; //Clock High
+  *loadPort |= loadBit; //Load High
+  *clkPort &= ~clkBit; //Clock Low
   
   bool change = false;
   uint8_t input = 0;
   if (this->clockInhPin > 0){
-    digitalWrite(this->clockInhPin, LOW);
+    *clkInhPort &= ~clkInhBit;//Clock Inh Low
   }
+  
   for(uint8_t chip = 0; chip < this->chipCount; chip++) {
     input = 0;
     for(uint8_t inputBit = 0; inputBit < 8; inputBit++) {
-      input |= (digitalRead(this->dataPin) == HIGH ? 1 : 0) << inputBit;
-      digitalWrite(clockPin, HIGH);
-      digitalWrite(clockPin, LOW);
+      *clkPort &= ~clkBit; //Clock Low
+      input |= ((*dataPort & dataBit) ? 1 : 0) << inputBit;
+      *clkPort |= clkBit; //Clock High
     }
     if (this->input[chip] != input) {
       this->input[chip] = input;
@@ -71,8 +89,9 @@ bool ShiftInput::updateInput() {
     }
   }
   if (this->clockInhPin > 0){
-    digitalWrite(this->clockInhPin, HIGH);
+    *clkInhPort |= clkInhBit; //Clock Inh High
   }
   
+  SREG = oldSREG;
   return change;
 }

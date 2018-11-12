@@ -16,7 +16,8 @@ limitations under the License.
 
 /**
  * Example Programs
- * Hello World: 311833021210c0323401411412103416e4203406d400000048656c6c6f20576f726c640a
+ * Hello World: 3118 3302 1210 c032 3401 4114 1210 3416 e420 3406 d400 0000 48656c6c6f20576f726c640a
+ * 32-bit Counter: 3601 3704 4556 5440 5330 5220 5110 D700
  */
 
 //Options
@@ -111,12 +112,13 @@ void setup() {
 }
 
 unsigned long int nextRun = 0;
+uint8_t err = 0;
 
 void loop() {
   if (vm.run) {
     if (nextRun == 0 || nextRun < millis()) {
       vm_step(&vm);
-      int delayTime = analogRead(PIN_SPEED);
+      int delayTime = 1024 - analogRead(PIN_SPEED);
       if (delayTime < 10) {
         nextRun = 0;
       } else {
@@ -132,10 +134,12 @@ void loop() {
 }
 
 void vm_print_error(uint8_t err) {
-  Serial.print("\n");
+  vm.R[0] = err;
+  Serial.print("\nPC 0x");
+  Serial.print(vm.PC, HEX);
   switch(err) {
     case VM_ERR_MISALIGN:
-      Serial.println("Halted. PC misaligned.");
+      Serial.println("\nHalted. PC misaligned.");
       break;
     case VM_ERR_UNKNOWN_OP:
       //Will only happen if an instruction is not handled in the vm
