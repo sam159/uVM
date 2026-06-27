@@ -16,7 +16,6 @@ limitations under the License.
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include "vm.h"
 
 VM *new_vm() {
@@ -32,12 +31,12 @@ void vm_reset(VM *vm) {
     memset(vm->R, 0, sizeof(uint8_t) * VM_REG_SIZE);
     vm->PC = 0;
     vm->carry = 0;
+    vm->run = false;
     vm->halted = false;
 }
 
 void vm_clear(VM *vm) {
     vm_reset(vm);
-    memset(&vm->M, 0, VM_MEM_SIZE);
 }
 
 inline uint8_t vm_get_r(VM *vm, uint8_t r) {
@@ -50,7 +49,30 @@ inline uint8_t vm_get_r(VM *vm, uint8_t r) {
     return 0;
 }
 
+inline uint16_t vm_get_rx(VM *vm, uint8_t r) {
+    if (r <= 0xA) {
+        return vm_get_r(vm, r);
+    }
+    switch (r) {
+        case 0xB:
+            return (vm->R[6] << 8) + vm->R[7];
+        case 0xC:
+            return (vm->R[8] << 8) + vm->R[9];
+        case 0xD:
+            return (vm->R[10] << 8) + vm->R[11];
+        case 0xE:
+            return (vm->R[12] << 8) + vm->R[13];
+        case 0xF:
+            return (vm->R[14] << 8) + vm->R[15];
+        default:
+            return 0;
+    }
+}
+
 inline void vm_put_r(VM *vm, uint8_t r, uint8_t v) {
+    if (r == 0) {
+        return;
+    }
     if (r < VM_REG_SIZE) {
         vm->R[r] = v;
     }
@@ -75,8 +97,8 @@ inline void vm_decode_T(VM_Instruction *inst, uint16_t raw) {
 
 inline uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow) {
     uint8_t borrow = *ptr_borrow,
-    difference = 0,
-    xb, yb;
+            difference = 0,
+            xb, yb;
     for (uint8_t i = 0; i < 8; i++) {
         xb = (uint8_t) ((x >> i) & 1);
         yb = (uint8_t) ((y >> i) & 1);
@@ -90,123 +112,152 @@ inline uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow) {
 
 void vm_step(VM *vm) {
     VM_Instruction inst;
-    memset(&inst, 0, sizeof(VM_Instruction));
 
-    uint8_t PC = vm->PC;
+    uint16_t PC = vm->PC;
     if (PC % 2 != 0) {
-        fprintf(stderr, "Halted. PC not aligned.\n");
+        if (vm->error != NULL) {
+            vm->error(VM_ERR_MISALIGN);
+        }
         vm->halted = true;
+        vm->run = false;
         return;
     }
-    uint16_t raw = (vm->M[PC] << 8) + vm->M[PC + 1];
+    uint16_t raw = (vm->readAddr(PC, true) << 8) + vm->readAddr(PC + 1, true);
     vm->PC += 2;
     inst.op = (uint8_t) (raw >> 12);
 
     if (vm->halted) {
+        vm->run = false;
         return;
     }
 
-    uint8_t x = 0;
-    uint8_t y = 0;
-    uint8_t d = 0;
-    uint16_t temp16 = 0;
+    uint8_t rx = 0, ry = 0, rd = 0;
+    uint16_t rdx = 0, rxx = 0, temp16 = 0;
     switch (inst.op) {
         case OP_LDA:
-            vm_decode_Q(&inst, raw);
-            d = vm->M[inst.imm];
+            vm_decode_T(&inst, raw);
+            rxx = vm_get_rx(vm, inst.rx);
+            rxx += inst.imm;
+            if (rxx < VM_MEM_SIZE) {
+                rd = vm->readAddr(rxx, false);
+            } else {
+                if (vm->error != NULL) {
+                    vm->error(VM_ERR_OUT_OF_BOUNDS);
+                }
+                vm->halted = true;
+            }
             break;
         case OP_STA:
-            vm_decode_Q(&inst, raw);
-            vm->M[inst.imm] = vm_get_r(vm, inst.rd);
+            vm_decode_T(&inst, raw);
+            rx = vm_get_r(vm, inst.rx);
+            rdx = vm_get_rx(vm, inst.rd);
+            rdx += inst.imm;
+            if (rdx < VM_MEM_SIZE) {
+                vm->writeAddr(rdx, rx);
+            } else {
+                if (vm->error != NULL) {
+                    vm->error(VM_ERR_OUT_OF_BOUNDS);
+                }
+                vm->halted = true;
+            }
             break;
         case OP_LDI:
             vm_decode_Q(&inst, raw);
-            d = inst.imm;
+            rd = inst.imm;
             break;
         case OP_ADD:
             vm_decode_S(&inst, raw);
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = rx + ry;
             vm->carry = 0;
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            d = x + y;
             break;
         case OP_ADC:
             vm_decode_S(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            temp16 = x + y + vm->carry;
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            temp16 = rx + ry + vm->carry;
             vm->carry = (uint8_t) (temp16 >> 8);
-            d = (uint8_t) temp16;
+            rd = (uint8_t) temp16;
             break;
         case OP_SUB:
             vm_decode_S(&inst, raw);
             vm->carry = 0;
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            d = x - y;
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = rx - ry;
             break;
         case OP_SBC:
             vm_decode_S(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            d = vm_subtract(x, y, &vm->carry);
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = vm_subtract(rx, ry, &vm->carry);
             break;
         case OP_NOT:
             vm_decode_T(&inst, raw);
-            d = ~x;
+            rd = ~rx;
             break;
         case OP_AND:
             vm_decode_S(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            d = x & y;
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = rx & ry;
             break;
         case OP_SHL:
             vm_decode_T(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            d = x << vm_get_r(vm, inst.imm);
+            rx = vm_get_r(vm, inst.rx);
+            rd = rx << vm_get_r(vm, inst.imm);
             break;
         case OP_SHR:
             vm_decode_T(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            d = x >> vm_get_r(vm, inst.imm);
+            rx = vm_get_r(vm, inst.rx);
+            rd = rx >> vm_get_r(vm, inst.imm);
             break;
         case OP_SYS:
-            vm_decode_Q(&inst, raw);
+            vm_decode_T(&inst, raw);
+            rx = vm_get_r(vm, inst.rx);
             if (vm->syscall != NULL) {
-                d = vm->syscall(vm, inst.imm);
+                rd = vm->syscall(vm, rx, inst.imm);
             } else {
-                printf("SYSCALL #%d\n", inst.imm);
+                rd = 0;
             }
             break;
         case OP_JMP:
             vm_decode_Q(&inst, raw);
-            vm->PC = vm_get_r(vm, inst.rd);
+            rd = vm_get_rx(vm, inst.rd);
+            vm->PC = rd;
             break;
         case OP_JEQ:
             vm_decode_S(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            if (x == y) {
-                vm->PC = vm_get_r(vm, inst.rd);
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = vm_get_rx(vm, inst.rd);
+            if (rx == ry) {
+                vm->PC = rd;
             }
             break;
         case OP_JLT:
             vm_decode_S(&inst, raw);
-            x = vm_get_r(vm, inst.rx);
-            y = vm_get_r(vm, inst.ry);
-            if (x < y) {
-                vm->PC = vm_get_r(vm, inst.rd);
+            rx = vm_get_r(vm, inst.rx);
+            ry = vm_get_r(vm, inst.ry);
+            rd = vm_get_rx(vm, inst.rd);
+            if (rx < ry) {
+                vm->PC = rd;
             }
             break;
         case OP_HLT:
-            printf("Halted at 0x%04X\n", PC);
             vm->halted = true;
             break;
         default:
-            printf("Unknown Instruction at 0x%04X: 0x%hhX\n", PC, inst.op);
+            if (vm->error != NULL) {
+                vm->error(VM_ERR_UNKNOWN_OP);
+            }
             vm->halted = true;
             break;
     }
-    vm_put_r(vm, inst.rd, d);
+    vm_put_r(vm, inst.rd, rd);
+
+    if (vm->halted) {
+        vm->run = false;
+    }
 }
