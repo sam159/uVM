@@ -91,16 +91,6 @@ static void host_write(uint16_t addr, uint8_t data) {
     memory[addr] = data;
 }
 
-static uint8_t host_syscall(VM *vm, uint8_t callno, uint8_t imm) {
-    switch (callno) {
-        case 1:
-            printf("R%d: %d\n", vm->R[4] >> 8, vm->R[4] & 0xFF);
-            return 0;
-        default:
-            return 0;
-    }
-}
-
 static void host_error(uint8_t err) {
     switch (err) {
         case VM_ERR_MISALIGN:
@@ -111,6 +101,9 @@ static void host_error(uint8_t err) {
             break;
         case VM_ERR_OUT_OF_BOUNDS:
             printf("Error: out of bounds memory access\n");
+            break;
+        case VM_ERR_JUMP_SELF:
+            printf("Error: a jump instruction jumped to itself\n");
             break;
         default:
             printf("Error: %d\n", err);
@@ -141,7 +134,6 @@ int main(int argc, char *argv[]) {
 
     vm->readAddr = host_read;
     vm->writeAddr = host_write;
-    vm->syscall = host_syscall;
     vm->error = host_error;
 
     uint16_t pc = 0;
@@ -213,11 +205,18 @@ int main(int argc, char *argv[]) {
     vm->PC = pc;
     vm->halted = false;
 
-    while (!vm->halted) {
-        vm_step(vm);
+    int exitCode = 0;
+    while (true) {
+        if (!vm_step(vm)) {
+            if (vm->halted) {
+                printf("VM Halted with code %d\n", vm->haltCode);
+                exitCode = vm->haltCode;
+            }
+            break;
+        }
     }
 
     vm_print_state(vm);
     free_vm(vm);
-    return 0;
+    return exitCode;
 }

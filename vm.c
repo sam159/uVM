@@ -31,15 +31,15 @@ void vm_reset(VM *vm) {
     memset(vm->R, 0, sizeof(uint8_t) * VM_REG_SIZE);
     vm->PC = 0;
     vm->carry = 0;
-    vm->run = false;
     vm->halted = false;
+    vm->haltCode = 0;
 }
 
 void vm_clear(VM *vm) {
     vm_reset(vm);
 }
 
-inline uint8_t vm_get_r(VM *vm, uint8_t r) {
+inline uint8_t vm_get_r(VM *vm, const uint8_t r) {
     if (r == 0) {
         return 0;
     }
@@ -49,7 +49,7 @@ inline uint8_t vm_get_r(VM *vm, uint8_t r) {
     return 0;
 }
 
-inline uint16_t vm_get_rx(VM *vm, uint8_t r) {
+inline uint16_t vm_get_rx(VM *vm, const uint8_t r) {
     if (r <= 0xA) {
         return vm_get_r(vm, r);
     }
@@ -69,7 +69,7 @@ inline uint16_t vm_get_rx(VM *vm, uint8_t r) {
     }
 }
 
-inline void vm_put_r(VM *vm, uint8_t r, uint8_t v) {
+inline void vm_put_r(VM *vm, const uint8_t r, const uint8_t v) {
     if (r == 0) {
         return;
     }
@@ -78,24 +78,28 @@ inline void vm_put_r(VM *vm, uint8_t r, uint8_t v) {
     }
 }
 
-inline void vm_decode_Q(VM_Instruction *inst, uint16_t raw) {
+inline void vm_decode_Q(VM_Instruction *inst, const uint16_t raw) {
     inst->rd = (uint8_t) ((raw & 0x0F00) >> 8);
     inst->imm = (uint8_t) (raw & 0x00FF);
 }
 
-inline void vm_decode_S(VM_Instruction *inst, uint16_t raw) {
+inline void vm_decode_S(VM_Instruction *inst, const uint16_t raw) {
     inst->rd = (uint8_t) ((raw & 0x0F00) >> 8);
     inst->rx = (uint8_t) ((raw & 0x00F0) >> 4);
     inst->ry = (uint8_t) ((raw & 0x000F) >> 0);
 }
 
-inline void vm_decode_T(VM_Instruction *inst, uint16_t raw) {
+inline void vm_decode_T(VM_Instruction *inst, const uint16_t raw) {
     inst->rd = (uint8_t) ((raw & 0x0F00) >> 8);
     inst->rx = (uint8_t) ((raw & 0x00F0) >> 4);
     inst->imm = (uint8_t) ((raw & 0x000F) >> 0);
 }
 
-inline uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow) {
+inline void vm_decode_V(VM_Instruction *inst, uint16_t raw) {
+    inst->immx = (uint16_t) ((raw & 0x0FFF) >> 0);
+}
+
+inline uint8_t vm_subtract(const uint8_t x, const uint8_t y, uint8_t *ptr_borrow) {
     uint8_t borrow = *ptr_borrow,
             difference = 0,
             xb, yb;
@@ -110,60 +114,73 @@ inline uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow) {
     return difference;
 }
 
-void vm_step(VM *vm) {
+inline bool vm_test(const uint8_t a, const uint8_t b, const uint8_t test) {
+    if (test == 0) {
+        return false;
+    }
+    bool result = false;
+
+    if (test & TEST_EQ) {
+        result = a == b;
+    }
+    if (!result && test & TEST_GT) {
+        result = a > b;
+    }
+    if (!result && test & TEST_LT) {
+        result = a < b;
+    }
+
+    if (test & TEST_NOT) {
+        return !result;
+    }
+    return result;
+}
+
+bool vm_step(VM *vm) {
     VM_Instruction inst;
 
-    uint16_t PC = vm->PC;
+    if (vm->halted) {
+        return false;
+    }
+
+    const uint16_t PC = vm->PC;
     if (PC % 2 != 0) {
         if (vm->error != NULL) {
             vm->error(VM_ERR_MISALIGN);
         }
         vm->halted = true;
-        vm->run = false;
-        return;
+        return false;
     }
-    uint16_t raw = (vm->readAddr(PC, true) << 8) + vm->readAddr(PC + 1, true);
+    const uint16_t raw = (vm->readAddr(PC, true) << 8) + vm->readAddr(PC + 1, true);
     vm->PC += 2;
     inst.op = (uint8_t) (raw >> 12);
-
-    if (vm->halted) {
-        vm->run = false;
-        return;
-    }
 
     uint8_t rx = 0, ry = 0, rd = 0;
     uint16_t rdx = 0, rxx = 0, temp16 = 0;
     switch (inst.op) {
+        case OP_HLT:
+            vm_decode_V(&inst, raw);
+            vm->halted = true;
+            vm->haltCode = inst.immx;
+            break;
         case OP_LDA:
             vm_decode_T(&inst, raw);
             rxx = vm_get_rx(vm, inst.rx);
             rxx += inst.imm;
-            if (rxx < VM_MEM_SIZE) {
-                rd = vm->readAddr(rxx, false);
-            } else {
-                if (vm->error != NULL) {
-                    vm->error(VM_ERR_OUT_OF_BOUNDS);
-                }
-                vm->halted = true;
-            }
+            rd = vm->readAddr(rxx, false);
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_STA:
             vm_decode_T(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
             rdx = vm_get_rx(vm, inst.rd);
             rdx += inst.imm;
-            if (rdx < VM_MEM_SIZE) {
-                vm->writeAddr(rdx, rx);
-            } else {
-                if (vm->error != NULL) {
-                    vm->error(VM_ERR_OUT_OF_BOUNDS);
-                }
-                vm->halted = true;
-            }
+            vm->writeAddr(rdx, rx);
             break;
         case OP_LDI:
             vm_decode_Q(&inst, raw);
             rd = inst.imm;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_ADD:
             vm_decode_S(&inst, raw);
@@ -171,6 +188,7 @@ void vm_step(VM *vm) {
             ry = vm_get_r(vm, inst.ry);
             rd = rx + ry;
             vm->carry = 0;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_ADC:
             vm_decode_S(&inst, raw);
@@ -179,6 +197,7 @@ void vm_step(VM *vm) {
             temp16 = rx + ry + vm->carry;
             vm->carry = (uint8_t) (temp16 >> 8);
             rd = (uint8_t) temp16;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_SUB:
             vm_decode_S(&inst, raw);
@@ -186,67 +205,69 @@ void vm_step(VM *vm) {
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
             rd = rx - ry;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_SBC:
             vm_decode_S(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
+            // carry is modified by vm_subtract
             rd = vm_subtract(rx, ry, &vm->carry);
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_NOT:
             vm_decode_T(&inst, raw);
+            rx = vm_get_r(vm, inst.rx);
             rd = ~rx;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_AND:
             vm_decode_S(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
             rd = rx & ry;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_SHL:
             vm_decode_T(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
-            rd = rx << vm_get_r(vm, inst.imm);
+            rd = rx << inst.imm;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_SHR:
             vm_decode_T(&inst, raw);
             rx = vm_get_r(vm, inst.rx);
-            rd = rx >> vm_get_r(vm, inst.imm);
-            break;
-        case OP_SYS:
-            vm_decode_T(&inst, raw);
-            rx = vm_get_r(vm, inst.rx);
-            if (vm->syscall != NULL) {
-                rd = vm->syscall(vm, rx, inst.imm);
-            } else {
-                rd = 0;
-            }
+            rd = rx >> inst.imm;
+            vm_put_r(vm, inst.rd, rd);
             break;
         case OP_JMP:
+            vm_decode_V(&inst, raw);
+            {
+                int16_t offset = (int16_t)(inst.immx & 0x7FF);
+                if (inst.immx & 0x800) offset -= 0x800;
+                vm->PC += offset * 2;
+            }
+            break;
+        case OP_JPF:
             vm_decode_Q(&inst, raw);
-            rd = vm_get_rx(vm, inst.rd);
-            vm->PC = rd;
+            rdx = vm_get_rx(vm, inst.rd);
+            rdx += (int8_t)inst.imm * 2;
+            vm->PC = rdx;
             break;
-        case OP_JEQ:
-            vm_decode_S(&inst, raw);
-            rx = vm_get_r(vm, inst.rx);
-            ry = vm_get_r(vm, inst.ry);
-            rd = vm_get_rx(vm, inst.rd);
-            if (rx == ry) {
-                vm->PC = rd;
+        case OP_JNZ:
+            vm_decode_Q(&inst, raw);
+            rd = vm_get_r(vm, inst.rd);
+            if (rd != 0) {
+                vm->PC += (int8_t)inst.imm * 2;
             }
             break;
-        case OP_JLT:
-            vm_decode_S(&inst, raw);
+        case OP_JPC:
+            vm_decode_T(&inst, raw);
+            rd = vm_get_r(vm, inst.rd);
             rx = vm_get_r(vm, inst.rx);
-            ry = vm_get_r(vm, inst.ry);
-            rd = vm_get_rx(vm, inst.rd);
-            if (rx < ry) {
-                vm->PC = rd;
+            if (vm_test(rd, rx, inst.imm)) {
+                vm->PC += 2;
             }
-            break;
-        case OP_HLT:
-            vm->halted = true;
             break;
         default:
             if (vm->error != NULL) {
@@ -255,9 +276,13 @@ void vm_step(VM *vm) {
             vm->halted = true;
             break;
     }
-    vm_put_r(vm, inst.rd, rd);
 
-    if (vm->halted) {
-        vm->run = false;
+    if (vm->PC == PC) {
+        if (vm->error != NULL) {
+            vm->error(VM_ERR_JUMP_SELF);
+        }
+        vm->halted = true;
     }
+
+    return !vm->halted;
 }

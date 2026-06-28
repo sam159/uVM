@@ -11,9 +11,14 @@
 - Comments follow `;`
 - Case-insensitive
 
+### Labels
+
+Labels can be referenced by `:[label]`. The 16-bit address is resolved by the assembler.
+
 ## Registers
 
-- `R0` - `RF` 8-bit registers
+- `R0` / `ZERO` zero register (Always reads as zero)
+- `R1` - `RF` 8-bit registers
 - `RXB` - `RXF` 16-bit registers
 
 ## Instruction formats
@@ -25,11 +30,10 @@ Three encoding families map to assembly formats:
 | Q      | opcode(4) rd(4) imm(8)       | `OP rd, imm`     |
 | S      | opcode(4) rd(4) rx(4) ry(4)  | `OP rd, rx, ry`  |
 | T      | opcode(4) rd(4) rx(4) imm(4) | `OP rd, rx, imm` |
+| V      | opcode(4) imm(12)            | `OP rd, imm`     |
 
 Refer to the (Readme.md)[Readme.md] for the available instructions and which format to use for each. Keep in mind that
 some instructions can operate on the RX registers.
-
-The `HLT` instruction takes no operands.
 
 ## Directives
 
@@ -41,24 +45,42 @@ The `HLT` instruction takes no operands.
 
 Sets the assembly location counter to `address`. All subsequent labels and instructions are offset from this address. Default origin is `0x0000`.
 
-## Examples
+### $alias - register aliases
 
 ```asm
-; Sum 0..99 into R1
-        LDI     R1, 0       ; accumulator = 0
-        LDI     R2, 0       ; counter = 0
-        LDI     R3, 99      ; limit = 99
-
-loop:   ADD     R1, R1, R2    ; acc += counter
-        ADD     R2, R2, 1     ; counter++
-        JEQ     R1, R2, R3    ; if counter == limit, fall through
-        JMP     R0, loop      ; else jump to loop (R0=0, address in upper reg)
-
-        HLT
+$Example = R2
+$Value = 0x100
 ```
 
-## Notes
+Assigns a user mnemonic to a register or literal value
 
-- Immediate values are 8-bit (0–255) or 4-bit (0–15) depending on the instruction.
-- Jump targets use address registers (RXB–RXF) for 16-bit PC loads.
-- Labels resolve to byte addresses (even numbers only — instructions are 2-byte aligned).
+## Examples
+
+It should be common practice to treat R1 as a source for the value of one, for incrementing/decrementing indexes into
+arrays as there is no way to add/subtract immediate values.
+
+# Increment value by two 100 times
+
+```asm
+:origin 0x100
+
+; Variables
+$ONE = R1
+$ACC = R2
+$INC = R3
+$COUNTER = R4
+
+; Set initial values
+        LDI     R1, $ONE                    ; load 1 into R1
+        LDI     $ACC, 0                     ; accumulator = 0
+        LDI     $INC, 2                     ; increment = 2
+        LDI     $COUNTER, 100               ; iterations = 100
+
+; Addition loop
+loop:   ADD     $ACC, $ACC, $INC            ; accumulator += increment
+        SUB     $COUNTER, $COUNTER, $ONE    ; iterations--
+        JNZ     $COUNTER, :loop             ; if iterations is not zero, jump back to label loop
+
+; Stop VM
+        HLT     0                           ; halt with exit code 0
+```

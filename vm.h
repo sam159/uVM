@@ -35,14 +35,20 @@ limitations under the License.
 #define OP_AND 0x9
 #define OP_SHL 0xa
 #define OP_SHR 0xb
-#define OP_SYS 0xc
-#define OP_JMP 0xd
-#define OP_JEQ 0xe
-#define OP_JLT 0xf
+#define OP_JMP 0xc
+#define OP_JPF 0xd
+#define OP_JNZ 0xe
+#define OP_JPC 0xf
 
-#define VM_ERR_MISALIGN 0x4
-#define VM_ERR_UNKNOWN_OP 0x5
-#define VM_ERR_OUT_OF_BOUNDS 0x6
+#define TEST_EQ 0x1
+#define TEST_LT 0x2
+#define TEST_GT 0x4
+#define TEST_NOT 0x8
+
+#define VM_ERR_MISALIGN 0x1
+#define VM_ERR_UNKNOWN_OP 0x2
+#define VM_ERR_OUT_OF_BOUNDS 0x3
+#define VM_ERR_JUMP_SELF 0x4
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +60,7 @@ struct VM_Instruction_t {
     uint8_t rx;
     uint8_t ry;
     uint8_t imm;
+    uint16_t immx;
 };
 typedef struct VM_Instruction_t VM_Instruction;
 
@@ -61,11 +68,10 @@ struct VM_t {
     uint8_t R[VM_REG_SIZE];
     uint16_t PC;
     uint8_t carry;
-    bool run;
     bool halted;
+    uint16_t haltCode;
     uint8_t (*readAddr)(uint16_t addr, bool instruction);
     void (*writeAddr)(uint16_t addr, uint8_t data);
-    uint8_t (*syscall)(struct VM_t* vm, uint8_t callno, uint8_t imm);
     void (*error)(uint8_t err);
 };
 typedef struct VM_t VM;
@@ -87,10 +93,13 @@ void vm_put_r(VM *vm, uint8_t r, uint8_t v);
 void vm_decode_Q(VM_Instruction *inst, uint16_t raw);
 void vm_decode_S(VM_Instruction *inst, uint16_t raw);
 void vm_decode_T(VM_Instruction *inst, uint16_t raw);
+void vm_decode_V(VM_Instruction *inst, uint16_t raw);
 
 uint8_t vm_subtract(uint8_t x, uint8_t y, uint8_t *ptr_borrow);
 
-void vm_step(VM *vm);
+bool vm_test(uint8_t a, uint8_t b, uint8_t test);
+
+bool vm_step(VM *vm);
 
 #ifdef __cplusplus
 }
