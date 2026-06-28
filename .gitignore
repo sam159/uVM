@@ -109,3 +109,6 @@ _autosave-*
 
 
 # End of https://www.gitignore.io/api/clion,kicad
+
+# assembled programs
+programs/*.bin

@@ -3,4 +3,5 @@ project(uVM C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(uVM main.c vm.c vm.h)
+add_executable(uVM main.c vm.c vm.h asm/asm.c asm/asm.h)
+target_include_directories(uVM PRIVATE asm)

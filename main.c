@@ -2,8 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "vm.h"
+#include "asm.h"
 
 static uint8_t memory[VM_MEM_SIZE + 1];
 
@@ -78,6 +80,7 @@ static void print_usage(const char *prog) {
     fprintf(stderr, "  %s program.bin                          # load at 0x0000\n", basename);
     fprintf(stderr, "  %s -a 0x100 file1.bin -a 0x200 file2.bin  # multiple files at absolute addresses\n", basename);
     fprintf(stderr, "  %s -p 0x100 program.bin                 # set PC to 0x100\n", basename);
+    fprintf(stderr, "  %s -c file.asm [-o output.bin]          # assemble into binary format\n", basename);
 }
 
 static uint8_t host_read(uint16_t addr, bool instruction) {
@@ -142,14 +145,33 @@ int main(int argc, char *argv[]) {
     vm->error = host_error;
 
     uint16_t pc = 0;
+    const char *compile_input = NULL;
+    const char *compile_output = "output.bin";
 
     if (argc < 2) {
         print_usage(argv[0]);
         return 1;
     }
 
+    bool compile_mode = false;
+
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-p") == 0) {
+        if (strcmp(argv[i], "-c") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Error: missing file after -c\n");
+                return 1;
+            }
+            i++;
+            compile_input = argv[i];
+            compile_mode = true;
+        } else if (strcmp(argv[i], "-o") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Error: missing file after -o\n");
+                return 1;
+            }
+            i++;
+            compile_output = argv[i];
+        } else if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Error: missing address after -p\n");
                 return 1;
@@ -176,9 +198,16 @@ int main(int argc, char *argv[]) {
             }
             i++;
             if (load_binary(argv[i], (uint16_t)val) != 0) return 1;
-        } else {
+        } else if (!compile_mode) {
             if (load_binary(argv[i], 0) != 0) return 1;
         }
+    }
+
+    if (compile_input) {
+        if (asm_compile(compile_input, compile_output) == false) {
+            return 1;
+        }
+        return 0;
     }
 
     vm->PC = pc;

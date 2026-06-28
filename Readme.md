@@ -28,13 +28,13 @@ The upper 10 registers form five extended 16-bit address registers (big-endian, 
 
 ### Memory
 
-- 16KB address space (0x0000 - 0xFFFF).
+- 64KB address space (0x0000 - 0xFFFF).
 - All operations work on registers only, no direct memory-to-memory operations.
 - Memory access is via hook functions: `readAddr` and `writeAddr` on the VM struct.
 
 ### Instruction Format
 
-All instructions are 2 bytes (big-endian). The upper 4 bits are the opcode. Three operand formats share the lower 12 bits:
+All instructions are two bytes (big-endian). The upper four bits are the opcode. Three operand formats share the lower 12 bits:
 
 | Format | Layout (16 bits)            | Description                                     |
 |--------|-----------------------------|-------------------------------------------------|
@@ -44,13 +44,13 @@ All instructions are 2 bytes (big-endian). The upper 4 bits are the opcode. Thre
 
 ### Operations
 
-`rd` is always an 8-bit register unless marked † (read as a 16-bit address register). Operands `rx` and `ry` are always 8-bit registers.
+`rd` is always an 8-bit register, while `rdx` may be a 16-bit address register if above 0xA. Operands `rx` and `ry` are always 8-bit registers.
 
 | Op  | Mnemonic | Format | Operands                 | Description                                                          |
 |-----|----------|--------|--------------------------|----------------------------------------------------------------------|
 | `0` | HLT      | —      | —                        | Halt the VM. Sets `halted = true`.                                   |
-| `1` | LDA      | T      | `rd ← [†rd + imm]`       | Load byte from memory at 16-bit address `(rd << 8) + imm` into `rd`. |
-| `2` | STA      | T      | `[†rd + imm] ← rx`       | Store `rx` to memory at 16-bit address `(rd << 8) + imm`.            |
+| `1` | LDA      | T      | `rd ← [rdx + imm]`       | Load byte from memory at 16-bit address `rdx + imm` into `rdx`.      |
+| `2` | STA      | T      | `[rdx + imm] ← rx`       | Store `rx` to memory at 16-bit address `rdx + imm`.                  |
 | `3` | LDI      | Q      | `rd ← imm`               | Load 8-bit immediate value into `rd`.                                |
 | `4` | ADD      | S      | `rd ← rx + ry`           | 8-bit add. Clears carry.                                             |
 | `5` | ADC      | S      | `rd ← rx + ry + carry`   | 8-bit add with carry. Sets carry on overflow.                        |
@@ -58,12 +58,12 @@ All instructions are 2 bytes (big-endian). The upper 4 bits are the opcode. Thre
 | `7` | SBC      | S      | `rd ← rx - ry - borrow`  | 8-bit subtract with borrow. Propagates borrow bit-by-bit into carry. |
 | `8` | NOT      | T      | `rd ← ~rx`               | Bitwise NOT of `rx`.                                                 |
 | `9` | AND      | S      | `rd ← rx & ry`           | Bitwise AND of `rx` and `ry`.                                        |
-| `a` | SHL      | T      | `rd ← rx << imm`         | Logical left shift by `imm` bits.                                    |
-| `b` | SHR      | T      | `rd ← rx >> imm`         | Logical right shift by `imm` bits.                                   |
-| `c` | SYS      | T      | `rd ← syscall(rx, imm)`  | Syscall with call number `rx` and parameter `imm`. Result in `rd`.   |
-| `d` | JMP      | Q      | `PC ← †rd`               | Unconditional jump to 16-bit address in `rd` (16-bit register pair). |
-| `e` | JEQ      | S      | `PC ← †rd` if `rx == ry` | Conditional jump to 16-bit address in `rd` if `rx == ry`.            |
-| `f` | JLT      | S      | `PC ← †rd` if `rx < ry`  | Conditional jump to 16-bit address in `rd` if `rx < ry` (unsigned).  |
+| `A` | SHL      | T      | `rd ← rx << imm`         | Logical left shift by `imm` bits.                                    |
+| `B` | SHR      | T      | `rd ← rx >> imm`         | Logical right shift by `imm` bits.                                   |
+| `C` | SYS      | T      | `rd ← syscall(rx, imm)`  | Syscall with call number `rx` and parameter `imm`. Result in `rd`.   |
+| `D` | JMP      | Q      | `PC ← rdx`               | Unconditional jump to address in `rdx`.                              |
+| `E` | JEQ      | S      | `PC ← rdx` if `rx == ry` | Conditional jump to address in `rdx` if `rx == ry`.                  |
+| `F` | JLT      | S      | `PC ← rdx` if `rx < ry`  | Conditional jump to address in `rdx` if `rx < ry` (unsigned).        |
 
 ### Error Handling
 
