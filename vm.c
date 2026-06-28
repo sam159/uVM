@@ -55,15 +55,15 @@ inline uint16_t vm_get_rx(VM *vm, uint8_t r) {
     }
     switch (r) {
         case 0xB:
-            return (vm->R[6] << 8) + vm->R[7];
+            return (vm->R[0x6] << 8) + vm->R[0x7];
         case 0xC:
-            return (vm->R[8] << 8) + vm->R[9];
+            return (vm->R[0x8] << 8) + vm->R[0x9];
         case 0xD:
-            return (vm->R[10] << 8) + vm->R[11];
+            return (vm->R[0xA] << 8) + vm->R[0xB];
         case 0xE:
-            return (vm->R[12] << 8) + vm->R[13];
+            return (vm->R[0xC] << 8) + vm->R[0xD];
         case 0xF:
-            return (vm->R[14] << 8) + vm->R[15];
+            return (vm->R[0xE] << 8) + vm->R[0xF];
         default:
             return 0;
     }

@@ -40,9 +40,9 @@ limitations under the License.
 #define OP_JEQ 0xe
 #define OP_JLT 0xf
 
-#define VM_ERR_MISALIGN 0x1
-#define VM_ERR_UNKNOWN_OP 0x2
-#define VM_ERR_OUT_OF_BOUNDS 0x4
+#define VM_ERR_MISALIGN 0x4
+#define VM_ERR_UNKNOWN_OP 0x5
+#define VM_ERR_OUT_OF_BOUNDS 0x6
 
 #ifdef __cplusplus
 extern "C" {
