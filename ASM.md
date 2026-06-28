@@ -37,13 +37,17 @@ some instructions can operate on the RX registers.
 
 ## Directives
 
-### :origin — Set origin
+### `:origin` — Set origin
 
 ```
 :origin address
 ```
 
-Sets the assembly location counter to `address`. All subsequent labels and instructions are offset from this address. Default origin is `0x0000`.
+Sets the assembly location counter to `address`. All following labels and instructions are offset from this address. Default origin is `0x0000`.
+
+### `[label]:` — set address label
+
+Marks the address of the next instruction with this label. Labels may only contain alphanumeric characters and underscores
 
 ### $alias - register aliases
 
@@ -52,7 +56,7 @@ $Example = R2
 $Value = 0x100
 ```
 
-Assigns a user mnemonic to a register or literal value
+Assigns a user mnemonic to a register or literal value (decimal or hexadecimal)
 
 ## Examples
 

@@ -1,0 +1,99 @@
+(* ===== Program structure ===== *)
+
+program   = { line } ;
+
+line      = { whitespace }
+          , [ statement ]
+          , [ comment ]
+          , "\n" ;
+
+statement = label_def , [ instruction ]
+          | origin_directive
+          | alias_directive
+          | instruction ;
+
+(* ===== Directives ===== *)
+
+origin_directive = ( ":origin" | ":addr" ) , number ;
+
+alias_directive  = alias_name , "=" , alias_value ;
+
+alias_value      = reg | number ;
+
+(* ===== Labels ===== *)
+
+label_def = identifier , ":" ;
+
+(* ===== Instructions ===== *)
+
+(* Each mnemonic maps to one encoding format (Q/S/T/V); the per-mnemonic
+   rules below constrain the operand list and operand types accordingly. *)
+
+instruction = hlt | lda | sta | ldi | add | adc | sub | sbc
+            | not_op | and_op | shl | shr | jmp | jpf | jnz | jpc ;
+
+hlt = "HLT" , imm_operand ;                         (* V  *)
+lda = "LDA" , reg , reg , imm_operand ;             (* T  *)
+sta = "STA" , reg , reg , imm_operand ;             (* T  *)
+ldi = "LDI" , reg , imm_operand ;                   (* Q  *)
+add = "ADD" , reg , reg , reg ;                     (* S  *)
+adc = "ADC" , reg , reg , reg ;                     (* S  *)
+sub = "SUB" , reg , reg , reg ;                     (* S  *)
+sbc = "SBC" , reg , reg , reg ;                     (* S  *)
+not_op = "NOT" , reg , reg ;                        (* T  ; imm4 unused *)
+and_op = "AND" , reg , reg , reg ;                  (* S  *)
+shl = "SHL" , reg , reg , imm_operand ;             (* T  *)
+shr = "SHR" , reg , reg , imm_operand ;             (* T  *)
+jmp = "JMP" , imm_operand ;                         (* V  *)
+jpf = "JPF" , reg , imm_operand ;                   (* Q  *)
+jnz = "JNZ" , reg , imm_operand ;                   (* Q  *)
+jpc = "JPC" , reg , reg , test ;                    (* T  ; imm4 = test *)
+
+(* ===== Operands ===== *)
+
+imm_operand = number | alias_ref | label_ref ;
+
+label_ref   = ":" , identifier ;
+alias_ref   = alias_name ;
+alias_name  = "$" , identifier ;
+
+(* Conditional-jump test type (JPC's third operand) *)
+test      = [ "~" ] , test_base | number ;
+test_base = "EQ" | "LT" | "GT" | "LTE" | "GTE" | "ANY" ;
+
+(* ===== Registers ===== *)
+
+reg       = "R" , hex_digit
+          | "RX" , ext_index
+          | "ZERO" ;
+ext_index = "B" | "C" | "D" | "E" | "F" ;
+
+(* ===== Comments ===== *)
+
+comment = ";" , { character - "\n" } ;
+
+(* ===== Lexical tokens ===== *)
+
+whitespace      = " " | "\t" ;
+
+identifier      = ( letter | "_" ) , { letter | digit | "_" } ;
+
+number          = hex_number | decimal_number ;
+hex_number      = ( "0x" | "0X" ) , hex_digit , { hex_digit } ;
+decimal_number  = [ "-" ] , digit , { digit } ;
+
+hex_digit       = digit
+                | "A" | "B" | "C" | "D" | "E" | "F"
+                | "a" | "b" | "c" | "d" | "e" | "f" ;
+
+digit           = "0" | "1" | "2" | "3" | "4"
+                | "5" | "6" | "7" | "8" | "9" ;
+
+letter          = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I"
+                | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R"
+                | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+                | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+                | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r"
+                | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
+
+character       = ? any character ? ;
