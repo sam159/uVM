@@ -16,17 +16,18 @@ operations are done on one of 16 8-bit registers with 4 16-bit being a re-use of
 
 Some instructions can use two 8-bit registers as one 16-bit register for addressing. 
 
-The upper 10 registers form five extended 16-bit address registers (big-endian, high byte : low byte):
+The upper 12 registers form 6 extended 16-bit address registers (big-endian, high byte : low byte):
 
 | Alias | Registers |
 |-------|-----------|
+| RXA   | R4 : R5   |
 | RXB   | R6 : R7   |
 | RXC   | R8 : R9   |
 | RXD   | RA : RB   |
 | RXE   | RC : RD   |
 | RXF   | RE : RF   |
 
-`vm_get_rx()` returns the 16-bit value of a register: 0x0-0xA return the 8-bit variant, with 0xB-0xF returning the above registers.  
+`vm_get_rx()` returns the 16-bit value of a register: 0x0-0x9 return the 8-bit variant, with 0xA-0xF returning the above registers.  
 
 ### Memory
 
@@ -66,7 +67,7 @@ Operand terms
 
 All jumps are in words/instructions. 
 
-| Op  | Mnemonic | Format | Operands                           | Description                                                                               |
+| Op  | Mnemonic | Format | Operation                          | Description                                                                               |
 |-----|----------|--------|------------------------------------|-------------------------------------------------------------------------------------------|
 | `0` | HLT      | V      | `exitcode ← imm12`                 | Halt the VM. Sets `halted = true`, and the exit code to `imm12`                           |
 | `1` | LDA      | T      | `rdx ← [rdx + imm4]`               | Load byte from memory at 16-bit address `rdx + imm4` into `rdx`                           |

@@ -50,10 +50,12 @@ inline uint8_t vm_get_r(VM *vm, const uint8_t r) {
 }
 
 inline uint16_t vm_get_rx(VM *vm, const uint8_t r) {
-    if (r <= 0xA) {
+    if (r < 0xA) {
         return vm_get_r(vm, r);
     }
     switch (r) {
+        case 0xA:
+            return (vm->R[0x4] << 8) + vm->R[0x5];
         case 0xB:
             return (vm->R[0x6] << 8) + vm->R[0x7];
         case 0xC:
