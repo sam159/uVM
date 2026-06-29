@@ -7,8 +7,11 @@ operations are done on one of 16 8-bit registers with 4 16-bit being a re-use of
 
 ### Registers and Flags
 
-- **16 registers** (R0–RF), 8-bit each.
-- **R0** always reads as 0. Writes to R0 are a no-op.
+- **8-bit registers** 16 registers (`R0`–`RF`), 8-bit each.
+- **16-bit registers** 16 registers (`RX0`-`RXF`) mapped over the 8-bit registers.
+  - `RX0`-`RX9` with low bytes mapped to
+  - `RXA`-`RXF` mapped to pairs of 8-bit registers
+- **R0/RX0** always reads as 0. Writes to R0 are a no-op.
 - **PC** (program counter), 16-bit. Increments by 2 each instruction fetch. Must be word-aligned.
 - **carry**, 1-bit flag used by ADC and SBC.
 
@@ -16,7 +19,7 @@ operations are done on one of 16 8-bit registers with 4 16-bit being a re-use of
 
 Some instructions can use two 8-bit registers as one 16-bit register for addressing. 
 
-The upper 12 registers form 6 extended 16-bit address registers (big-endian, high byte : low byte):
+The upper 12 registers form six extended 16-bit address registers (big-endian, high byte : low byte):
 
 | Alias | Registers |
 |-------|-----------|

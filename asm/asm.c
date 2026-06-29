@@ -18,11 +18,7 @@ bool asm_compile(const char *input, const char *output) {
 
     fprintf(stderr, "Assembling '%s' -> '%s'\n", input, output);
 
-    /* TODO:
-     * - read entire file and split into lines on new lines (\n or \r\n)
-     * - parse each line into an array of ASM_Line object
-     * - for debug write each line to stdout as parsed
-     */
+    // TODO: implement compiler
 
     fclose(f_in);
     fclose(f_out);

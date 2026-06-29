@@ -35,14 +35,14 @@ uVM -c file.asm [-o output.bin]            # assemble (stub; logic TODO in asm.c
 ## Directories
 
 - `arduino/` — Arduino port with its own `VM.c`/`VM.h`, console, shift-register I/O
-- `asm/` — assembler sources (`asm.c`/`asm.h`); `asm_compile(input, output)` is declared but the encoding logic is a TODO stub. The normative EBNF grammar for the assembly language is in `asm/GRAMMAR.md`.
+- `asm/` — assembler sources (`asm.c`/`asm.h`); `asm_compile(input, output)` is declared but the encoding logic is a TODO stub.
 - `programs/` — sample `.asm` sources; assembled `.bin` output is gitignored
 - `pcb/` — KiCad project (uvm.pro)
 - `cmake-build-*/` — build output, gitignored
 
 ## Assembly format
 
-See `ASM.md` for the assembly syntax: `[label:] opcode operands ; comment`, registers `R0`–`RF` / `RXB`–`RXF`, the `:origin` (a.k.a. `:addr`) directive, and how Q/S/T formats map to assembly operands. The precise grammar is in `asm/GRAMMAR.md`.
+See `ASM.md` for the assembly syntax: `[label:] opcode operands ; comment`, registers `R0`–`RF` / `RXB`–`RXF`, the `:origin` (a.k.a. `:addr`) directive, and how Q/S/T formats map to assembly operands.
 
 ## Host interface (vm.h)
 
