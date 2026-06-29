@@ -1,6 +1,7 @@
 #ifndef UVM_ASM_H
 #define UVM_ASM_H
 #include <stdint.h>
+#include "token.h"
 
 bool asm_compile(const char *input, const char *output);
 

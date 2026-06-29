@@ -143,7 +143,7 @@ the type may be one of
 - `DX` - hex data
     - one or more bytes in hex format, prefixed with `0x`
 - `STZ` - null terminated string
-    - value enclosed in single-quotes. Cannot have a new line. Escape single-quotes with a backslash
+    - value enclosed in double-quotes. Cannot have a new line. Escape double-quotes with a backslash
     - a zero is included at the end of the string
 - `STL` - length prefixed string
     - value as above
@@ -158,8 +158,8 @@ the type may be one of
 
 :origin 0x2000
 :data :hex1 DX 0x010203040506   ; 6-bytes stored at 0x2000
-:data :helloZ STZ 'Hello'       ; stores 0x65486C6C7200
-:data :helloL STL 'Hello'       ; stores 0x000A65486C6C72
+:data :helloZ STZ "Hello"       ; stores 0x65486C6C7200
+:data :helloL STL "Hello"       ; stores 0x000A65486C6C72
 ```
 
 ## Patterns / Practices

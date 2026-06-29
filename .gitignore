@@ -112,3 +112,5 @@ _autosave-*
 
 # assembled programs
 programs/*.bin
+
+output.bin
