@@ -114,3 +114,4 @@ _autosave-*
 programs/*.bin
 
 output.bin
+.worktrees/
