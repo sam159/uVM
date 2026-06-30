@@ -39,6 +39,7 @@ typedef enum {
 
 /* ASMProgramData */
 typedef struct {
+    char *label;
     ASMProgramDataType type;
     uint8_t *data;
     uint32_t data_length;

@@ -486,6 +486,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->type = ASM_PROGRAM_LINE_DATA;
             line->line_number = start_line;
             line->address = current_address;
+            line->data.label = data_label;
             line->data.type = dtype;
             line->data.data = data_buf;
             line->data.data_length = data_len;
@@ -501,7 +502,6 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 return NULL;
             }
 
-            free(data_label);
             pos++;
             continue;
         }
@@ -620,6 +620,7 @@ void asm_free_program(ASMProgram *program) {
                     }
                     break;
                 case ASM_PROGRAM_LINE_DATA:
+                    free(line->data.label);
                     free(line->data.data);
                     break;
                 case ASM_PROGRAM_LINE_ALIAS:
