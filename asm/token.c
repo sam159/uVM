@@ -118,6 +118,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_NEWLINE, "", 0, line_num, col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             break;
@@ -129,6 +130,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_NEWLINE, "", 0, line_num, col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             continue;
@@ -144,6 +146,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_COMMENT, cstart, (int)(p - cstart), line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -172,6 +175,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_STRING, sstart, (int)(p - sstart), line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -187,6 +191,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_ERROR, p, 1, line_num, col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 continue;
@@ -224,6 +229,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_ORIGIN, colon_val, len + 1, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -234,6 +240,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_DATA, colon_val, len + 1, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -245,6 +252,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_LABEL_REF, colon_val, len + 1, line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -273,6 +281,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_IDENT, dollar_val, len + 1, line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -302,6 +311,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_NUMBER, nstart, len, line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -324,6 +334,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_LABEL, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -335,6 +346,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_ORIGIN, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -344,6 +356,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_DATA, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -353,6 +366,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_OPCODE, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -362,6 +376,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_TEST, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -371,6 +386,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_DATA_TYPE, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 at_line_start = false;
@@ -380,6 +396,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 t = new_token(ASM_TOKEN_REGISTER, idstart, len, line_num, start_col);
                 if (t) {
                     asm_token_list_append(list, *t);
+                    free(t);
                 }
                 t = NULL;
                 continue;
@@ -389,6 +406,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_IDENT, idstart, len, line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -402,6 +420,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
             t = new_token(ASM_TOKEN_SYMBOL, p - 1, 1, line_num, start_col);
             if (t) {
                 asm_token_list_append(list, *t);
+                free(t);
             }
             t = NULL;
             at_line_start = false;
@@ -412,6 +431,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
         t = new_token(ASM_TOKEN_ERROR, p, 1, line_num, start_col);
         if (t) {
             asm_token_list_append(list, *t);
+            free(t);
         }
         t = NULL;
         p++;
@@ -475,7 +495,16 @@ int asm_token_list_concat(AsmTokenList *dest, const AsmTokenList *src) {
     if (!dest || !src) return 0;
     if (!list_ensure_capacity(dest, dest->count + src->count)) return 0;
     for (int i = 0; i < src->count; i++) {
-        dest->tokens[dest->count++] = *asm_token_copy(&src->tokens[i]);
+        const AsmToken *s = &src->tokens[i];
+        AsmToken *d = &dest->tokens[dest->count++];
+        d->type = s->type;
+        d->line = s->line;
+        d->col = s->col;
+        d->value_len = s->value_len;
+        d->value = malloc(s->value_len + 1);
+        if (!d->value) return 0;
+        memcpy(d->value, s->value, s->value_len);
+        d->value[s->value_len] = '\0';
     }
     return 1;
 }

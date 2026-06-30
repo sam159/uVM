@@ -22,6 +22,7 @@ bool asm_compile(const char *input, const char *output) {
         fclose(f_in);
         return false;
     }
+    outputTemp[0] = '\0';
     strcat(outputTemp, output);
     strcat(outputTemp, ".tmp");
 
