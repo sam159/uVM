@@ -54,6 +54,48 @@ static int parse_register_id(const char *s) {
     return -1;
 }
 
+static int parse_reg8_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type == ASM_TOKEN_REGISTER) {
+        int reg_id = parse_register_id(tok->value);
+        if (reg_id < 0 || reg_id > 15) {
+            return 0;
+        }
+        op->type = ASM_OPERAND_REG8;
+        op->reg8 = (uint8_t)reg_id;
+        (*pos)++;
+        return 1;
+    } else if (tok->type == ASM_TOKEN_IDENT && tok->value[0] == '$') {
+        op->type = ASM_OPERAND_VARIABLE;
+        op->variable = malloc(tok->value_len + 1);
+        if (!op->variable) return 0;
+        strcpy(op->variable, tok->value);
+        (*pos)++;
+        return 1;
+    }
+
+    return 0;
+}
+
+static int parse_reg16_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type != ASM_TOKEN_REGISTER) return 0;
+
+    if (tok->value[0] == 'R' && tok->value[1] == 'X') {
+        int reg_id = parse_register_id(tok->value);
+        if (reg_id >= 0) {
+            op->type = ASM_OPERAND_REG16;
+            op->reg8 = (uint8_t)reg_id;
+            (*pos)++;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
