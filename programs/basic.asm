@@ -1,5 +1,6 @@
 :origin 0x100
 ; Set initial values
+        LDI     R1, 1       ; constant 1
         LDI     R2, 0       ; accumulator = 0
         LDI     R3, 2       ; increment = 2
         LDI     R4, 100     ; iterations = 100
