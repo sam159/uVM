@@ -42,7 +42,7 @@ int asm_token_list_append(AsmTokenList *list, AsmToken token);
 int asm_token_list_concat(AsmTokenList *dest, const AsmTokenList *src);
 
 AsmTokenList *asm_tokenize_line(const char *line, int line_num);
-AsmToken *asm_token_copy(const AsmToken *src);
+AsmToken asm_token_copy(const AsmToken *src);
 void asm_free_tokens(AsmToken *tokens, size_t count);
 const char *asm_token_type_name(AsmTokenType type);
 

@@ -196,9 +196,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (compile_input) {
-        bool result = asm_compile(compile_input, compile_output);
+        bool compileSuccess = asm_compile(compile_input, compile_output);
+
         free_vm(vm);
-        return result ? 0 : 1;
+        return compileSuccess ? 0 : 1;
     }
 
     vm->PC = pc;
