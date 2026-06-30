@@ -25,13 +25,25 @@ typedef enum {
 typedef struct {
     AsmTokenType type;
     char *value;
-    int value_len;
+    size_t value_len;
     int line;
     int col;
 } AsmToken;
 
-int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens);
-void asm_free_tokens(AsmToken *tokens, int count);
+typedef struct AsmTokenList {
+    AsmToken *tokens;
+    size_t count;
+    size_t capacity;
+} AsmTokenList;
+
+AsmTokenList *asm_token_list_create(void);
+void asm_token_list_free(AsmTokenList *list);
+int asm_token_list_append(AsmTokenList *list, AsmToken token);
+int asm_token_list_concat(AsmTokenList *dest, const AsmTokenList *src);
+
+AsmTokenList *asm_tokenize_line(const char *line, int line_num);
+AsmToken *asm_token_copy(const AsmToken *src);
+void asm_free_tokens(AsmToken *tokens, size_t count);
 const char *asm_token_type_name(AsmTokenType type);
 
 #endif //UVM_TOKEN_H

@@ -118,9 +118,6 @@ similarly not setting any bits will not pass for any value.
 | ~GT      | 12     | 1100   | Not greater than                             |
 | GTE      | 5      | 0101   | Greater than or equal                        |
 | ~GTE     | 13     | 1101   | Not greater than or equal                    |
-| ANY      | 7      | 0111   | Anything (less than, equal, or greater than) |
-| ~ANY     | 15     | 1111   | Not anything                                 |
-
 
 ### Error Handling
 

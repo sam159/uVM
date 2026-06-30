@@ -58,44 +58,51 @@ static bool is_hex_char(char c) {
     return isxdigit((unsigned char)c) != 0;
 }
 
-static void token_init(AsmToken *t, AsmTokenType type, const char *value, int value_len, const int line, const int col) {
+static AsmToken *new_token(const AsmTokenType type, const char *value, const size_t value_len, const int line, const int col) {
+    AsmToken *t = malloc(sizeof(AsmToken));
+    if (!t) return NULL;
     t->type = type;
     t->value_len = value_len;
     t->line = line;
     t->col = col;
-    t->value = (char *)malloc((size_t)value_len + 1);
+    t->value = (char *)malloc(value_len + 1);
     if (t->value) {
-        memcpy(t->value, value, (size_t)value_len);
+        memcpy(t->value, value, value_len);
         t->value[value_len] = '\0';
     }
+    return t;
 }
 
-static bool ensure_capacity(AsmToken **arr, int *capacity, const int needed) {
-    if (needed <= *capacity) return true;
-    int new_cap = *capacity * 2;
-    AsmToken *tmp = realloc(*arr, sizeof(AsmToken) * (size_t)new_cap);
-    if (!tmp) return false;
-    *arr = tmp;
-    *capacity = new_cap;
-    return true;
+AsmToken *asm_token_copy(const AsmToken *src) {
+    if (!src) return NULL;
+    AsmToken *copy = malloc(sizeof(AsmToken));
+    if (!copy) return NULL;
+    copy->type = src->type;
+    copy->line = src->line;
+    copy->col = src->col;
+    copy->value_len = src->value_len;
+    copy->value = malloc(src->value_len + 1);
+    if (!copy->value) {
+        free(copy);
+        return NULL;
+    }
+    memcpy(copy->value, src->value, src->value_len);
+    copy->value[src->value_len] = '\0';
+    return copy;
 }
 
-int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
-    *tokens = NULL;
-    int capacity = 32;
-    int count = 0;
-    AsmToken *arr = malloc(sizeof(AsmToken) * (size_t)capacity);
-    if (!arr) return 0;
+AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
+    AsmTokenList *list = asm_token_list_create();
+    if (!list) return NULL;
 
     const char *p = line;
     int col = 0;
     bool at_line_start = true;
 
-    // Handle empty lines: emit a single NEWLINE token using the already-allocated array.
+    // Handle empty lines: emit a single NEWLINE token.
+    AsmToken *t;
     if (!*p) {
-        token_init(&arr[0], ASM_TOKEN_NEWLINE, "", 0, line_num, 0);
-        *tokens = arr;
-        return 1;
+        return list;
     }
 
     while (*p) {
@@ -108,21 +115,37 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
 
         // Check for end of line (trailing whitespace or after a token)
         if (!*p) {
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_NEWLINE, "", 0, line_num, col);
+            t = new_token(ASM_TOKEN_NEWLINE, "", 0, line_num, col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             break;
+        }
+
+        if (*p == '\n') {
+            p++;
+            col++;
+            t = new_token(ASM_TOKEN_NEWLINE, "", 0, line_num, col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
+            continue;
         }
 
         // Comment
         if (*p == ';') {
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
             const char *cstart = p;
-            while (*p) {
+            while (*p && *p != '\n') {
                 p++;
                 col++;
             }
-            int len = (int)(p - cstart);
-            token_init(&arr[count++], ASM_TOKEN_COMMENT, cstart, len, line_num, start_col);
+            t = new_token(ASM_TOKEN_COMMENT, cstart, (int)(p - cstart), line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             continue;
         }
@@ -142,13 +165,15 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
                     col++;
                 }
             }
-            int len = (int)(p - sstart);
             if (*p == quote) {
                 p++;
                 col++;
             }
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_STRING, sstart, len, line_num, start_col);
+            t = new_token(ASM_TOKEN_STRING, sstart, (int)(p - sstart), line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             continue;
         }
@@ -159,9 +184,11 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
             col++;
             if (*p == ':') {
                 // :: is not valid, treat as two colons
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_SYMBOL, ":", 1, line_num, start_col);
-                start_col = col;
+                t = new_token(ASM_TOKEN_ERROR, p, 1, line_num, col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 continue;
             }
             // Read the identifier after colon
@@ -184,30 +211,42 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
 
             // Build ":<identifier>" or ":<identifier>:h/:l"
             char *colon_val = (char *)malloc((size_t)len + 2);
-            if (!colon_val) { free(arr); return 0; }
+            if (!colon_val) {
+                asm_token_list_free(list);
+                return NULL;
+            }
             colon_val[0] = ':';
             memcpy(colon_val + 1, idstart, (size_t)len);
             colon_val[len + 1] = '\0';
 
             // Check for special colon-directives
             if (strcmp(colon_val, ":origin") == 0) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(colon_val); free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_ORIGIN, colon_val, len + 1, line_num, start_col);
+                t = new_token(ASM_TOKEN_ORIGIN, colon_val, len + 1, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 free(colon_val);
                 continue;
             }
             if (strcmp(colon_val, ":data") == 0) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(colon_val); free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_DATA, colon_val, len + 1, line_num, start_col);
+                t = new_token(ASM_TOKEN_DATA, colon_val, len + 1, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 free(colon_val);
                 continue;
             }
 
             // Generic :label reference
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(colon_val); free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_LABEL_REF, colon_val, len + 1, line_num, start_col);
+            t = new_token(ASM_TOKEN_LABEL_REF, colon_val, len + 1, line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             free(colon_val);
             continue;
@@ -224,12 +263,18 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
             }
             int len = (int)(p - idstart);
             char *dollar_val = (char *)malloc((size_t)len + 2);
-            if (!dollar_val) { free(arr); return 0; }
+            if (!dollar_val) {
+                asm_token_list_free(list);
+                return NULL;
+            }
             dollar_val[0] = '$';
             memcpy(dollar_val + 1, idstart, (size_t)len);
             dollar_val[len + 1] = '\0';
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(dollar_val); free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_IDENT, dollar_val, len + 1, line_num, start_col);
+            t = new_token(ASM_TOKEN_IDENT, dollar_val, len + 1, line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             free(dollar_val);
             continue;
@@ -254,8 +299,11 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
                 while (*p && isdigit((unsigned char)*p)) { p++; col++; }
             }
             int len = (int)(p - nstart);
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_NUMBER, nstart, len, line_num, start_col);
+            t = new_token(ASM_TOKEN_NUMBER, nstart, len, line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             continue;
         }
@@ -273,53 +321,76 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
             if (at_line_start && p[0] == ':') {
                 p++;
                 col++;
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_LABEL, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_LABEL, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
 
             // Check known keywords
             if (strcmp(idstart, "origin") == 0 && at_line_start) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_ORIGIN, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_ORIGIN, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
             if (strcmp(idstart, "data") == 0 && at_line_start) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_DATA, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_DATA, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
             if (is_opcode(idstart)) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_OPCODE, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_OPCODE, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
             if (is_test(idstart)) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_TEST, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_TEST, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
             if (is_datatype(idstart)) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_DATA_TYPE, idstart, len, line_num, start_col);
+                t = new_token(ASM_TOKEN_DATA_TYPE, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 at_line_start = false;
                 continue;
             }
             if (is_register(idstart)) {
-                if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-                token_init(&arr[count++], ASM_TOKEN_REGISTER, idstart, len, line_num, start_col);
-                at_line_start = false;
+                t = new_token(ASM_TOKEN_REGISTER, idstart, len, line_num, start_col);
+                if (t) {
+                    asm_token_list_append(list, *t);
+                }
+                t = NULL;
                 continue;
             }
 
             // Generic identifier
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_IDENT, idstart, len, line_num, start_col);
+            t = new_token(ASM_TOKEN_IDENT, idstart, len, line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             continue;
         }
@@ -328,30 +399,85 @@ int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens) {
         if (*p == '=' || *p == '+' || *p == '-' || *p == '~' || *p == ',' || *p == '[' || *p == ']') {
             p++;
             col++;
-            if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-            token_init(&arr[count++], ASM_TOKEN_SYMBOL, p - 1, 1, line_num, start_col);
+            t = new_token(ASM_TOKEN_SYMBOL, p - 1, 1, line_num, start_col);
+            if (t) {
+                asm_token_list_append(list, *t);
+            }
+            t = NULL;
             at_line_start = false;
             continue;
         }
 
         // Unknown character - error token
-        if (!ensure_capacity(&arr, &capacity, count + 1)) { free(arr); return 0; }
-        token_init(&arr[count++], ASM_TOKEN_ERROR, p, 1, line_num, start_col);
+        t = new_token(ASM_TOKEN_ERROR, p, 1, line_num, start_col);
+        if (t) {
+            asm_token_list_append(list, *t);
+        }
+        t = NULL;
         p++;
         col++;
         at_line_start = false;
     }
 
-    *tokens = arr;
-    return count;
+    return list;
 }
 
-void asm_free_tokens(AsmToken *tokens, const int count) {
+void asm_free_tokens(AsmToken *tokens, const size_t count) {
     if (!tokens) return;
     for (int i = 0; i < count; i++) {
         free(tokens[i].value);
     }
     free(tokens);
+}
+
+static int list_ensure_capacity(AsmTokenList *list, size_t needed) {
+    if (needed <= list->capacity) return 1;
+    size_t new_cap = list->capacity * 2;
+    AsmToken *tmp = realloc(list->tokens, sizeof(AsmToken) * new_cap);
+    if (!tmp) return 0;
+    list->tokens = tmp;
+    list->capacity = new_cap;
+    return 1;
+}
+
+AsmTokenList *asm_token_list_create(void) {
+    AsmTokenList *list = malloc(sizeof(AsmTokenList));
+    if (!list) return NULL;
+    list->capacity = 32;
+    list->count = 0;
+    list->tokens = malloc(sizeof(AsmToken) * list->capacity);
+    if (!list->tokens) {
+        free(list);
+        return NULL;
+    }
+    return list;
+}
+
+void asm_token_list_free(AsmTokenList *list) {
+    if (!list) return;
+    if (list->tokens) {
+        for (int i = 0; i < list->count; i++) {
+            free(list->tokens[i].value);
+        }
+        free(list->tokens);
+    }
+    free(list);
+}
+
+int asm_token_list_append(AsmTokenList *list, AsmToken token) {
+    if (!list) return 0;
+    if (!list_ensure_capacity(list, list->count + 1)) return 0;
+    list->tokens[list->count++] = token;
+    return 1;
+}
+
+int asm_token_list_concat(AsmTokenList *dest, const AsmTokenList *src) {
+    if (!dest || !src) return 0;
+    if (!list_ensure_capacity(dest, dest->count + src->count)) return 0;
+    for (int i = 0; i < src->count; i++) {
+        dest->tokens[dest->count++] = *asm_token_copy(&src->tokens[i]);
+    }
+    return 1;
 }
 
 const char *asm_token_type_name(AsmTokenType type) {

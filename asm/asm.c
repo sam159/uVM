@@ -2,8 +2,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "asm.h"
+
+#include <errno.h>
+
 #include "token.h"
+#include "tree.h"
 
 bool asm_compile(const char *input, const char *output) {
     FILE *f_in = fopen(input, "r");
@@ -12,8 +17,17 @@ bool asm_compile(const char *input, const char *output) {
         return false;
     }
 
-    FILE *f_out = fopen(output, "wb");
+    char * outputTemp = malloc(strlen(output) + 5);
+    if (!outputTemp) {
+        fclose(f_in);
+        return false;
+    }
+    strcat(outputTemp, output);
+    strcat(outputTemp, ".tmp");
+
+    FILE *f_out = fopen(outputTemp, "wb");
     if (!f_out) {
+        free(outputTemp);
         fprintf(stderr, "Error: cannot open '%s' for writing\n", output);
         fclose(f_in);
         return false;
@@ -21,44 +35,89 @@ bool asm_compile(const char *input, const char *output) {
 
     fprintf(stderr, "Assembling '%s' -> '%s'\n", input, output);
 
+    bool success = true;
+
+    ASMProgram *program = calloc(1, sizeof(ASMProgram));
+    if (!program) {
+        fclose(f_in);
+        free(outputTemp);
+        fclose(f_out);
+        return false;
+    }
+    
     char *line = NULL;
     size_t len = 0;
-    int line_num = 0;
+    int lineNum = 0;
+    AsmTokenList *tokens = asm_token_list_create();
+    if (!tokens) {
+        fclose(f_in);
+        free(outputTemp);
+        fclose(f_out);
+        free(program);
+        return false;
+    }
 
     while (getline(&line, &len, f_in) != -1) {
-        line_num++;
+        lineNum++;
 
-        // Strip trailing newline/carriage return
+        // Convert \r\n into \n
         size_t llen = strlen(line);
-        while (llen > 0 && (line[llen - 1] == '\n' || line[llen - 1] == '\r')) {
-            line[--llen] = '\0';
+        if (llen > 1 && line[llen - 1] == '\r' && line[llen - 2] == '\n') {
+            line[llen - 2] = '\n';
+            line[llen - 1] = '\0';
+            llen--;
         }
 
         // Enforce maximum line length
         if (llen > 1024) {
-            fprintf(stderr, "Error: line %d exceeds 1024 characters (%zu chars)\n", line_num, llen);
-            free(line);
-            fclose(f_in);
-            fclose(f_out);
-            return false;
+            fprintf(stderr, "Error: line %d exceeds 1024 characters (%zu chars)\n", lineNum, llen);
+            success = false;
+            break;
         }
 
-        AsmToken *tokens = NULL;
-        int count = asm_tokenize_line(line, line_num, &tokens);
+        AsmTokenList *lineTokens = asm_tokenize_line(line, lineNum);
 
-        // DEBUG: print tokens to stderr
-        for (int i = 0; i < count; i++) {
-            fprintf(stderr, "  L%d C%d: [%-12s] \"%s\"\n",
-                    line_num, tokens[i].col,
-                    asm_token_type_name(tokens[i].type),
-                    tokens[i].value);
-        }
-
-        asm_free_tokens(tokens, count);
+        asm_token_list_concat(tokens, lineTokens);
+        asm_token_list_free(lineTokens);
     }
     free(line);
 
+    // TODO: parse program
+
+    asm_free_program(program);
+
+    if (success) {
+        // DEBUG: print tokens to stderr
+        for (int i = 0; i < tokens->count; i++) {
+            fprintf(stderr, "  L%d C%d: [%-12s] \"%s\"\n",
+                    tokens->tokens[i].line, tokens->tokens[i].col,
+                    asm_token_type_name(tokens->tokens[i].type),
+                    tokens->tokens[i].value);
+        }
+    }
+
+    asm_token_list_free(tokens);
+
     fclose(f_in);
     fclose(f_out);
-    return true;
+
+    if (success) {
+        // copy outputTemp to output
+        if (rename(outputTemp, output) == -1) {
+            fprintf(
+                stderr,
+                "Error: failed to rename '%s' to '%s: %s'\n",
+                outputTemp,
+                output,
+                strerror(errno)
+                );
+            unlink(outputTemp);
+            success = false;
+        }
+    } else {
+        unlink(outputTemp);
+    }
+    free(outputTemp);
+
+    return success;
 }
