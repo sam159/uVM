@@ -263,6 +263,187 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             continue;
         }
 
+        if (tok->type == ASM_TOKEN_DATA) {
+            int start_line = tok->line;
+            int start_col = tok->col;
+            pos++;
+
+            char *data_label = NULL;
+            if (pos < tokens->count && tokens->tokens[pos].type == ASM_TOKEN_LABEL_REF) {
+                data_label = malloc(tokens->tokens[pos].value_len + 1);
+                if (!data_label) {
+                    parse_error(filename, start_line, start_col, "out of memory");
+                    asm_free_program(program);
+                    return NULL;
+                }
+                strcpy(data_label, tokens->tokens[pos].value);
+                pos++;
+            }
+
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_DATA_TYPE) {
+                parse_error(filename, start_line, start_col, "expected data type");
+                free(data_label);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            ASMProgramDataType dtype;
+            if (strcmp(tokens->tokens[pos].value, "DB") == 0) {
+                dtype = ASM_DATA_DB;
+            } else if (strcmp(tokens->tokens[pos].value, "DW") == 0) {
+                dtype = ASM_DATA_DW;
+            } else if (strcmp(tokens->tokens[pos].value, "DX") == 0) {
+                dtype = ASM_DATA_DX;
+            } else if (strcmp(tokens->tokens[pos].value, "STZ") == 0) {
+                dtype = ASM_DATA_STZ;
+            } else if (strcmp(tokens->tokens[pos].value, "STL") == 0) {
+                dtype = ASM_DATA_STL;
+            } else {
+                parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                           "unknown data type");
+                free(data_label);
+                asm_free_program(program);
+                return NULL;
+            }
+            pos++;
+
+            uint8_t *data_buf = NULL;
+            uint32_t data_len = 0;
+
+            if (dtype == ASM_DATA_DB) {
+                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
+                    parse_error(filename, start_line, start_col, "expected number for DB");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                int64_t val;
+                if (!parse_number(tokens->tokens[pos].value, &val) || val < 0 || val > 255) {
+                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                               "DB value out of range");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                data_buf = malloc(1);
+                if (!data_buf) {
+                    parse_error(filename, start_line, start_col, "out of memory");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                data_buf[0] = (uint8_t)val;
+                data_len = 1;
+                pos++;
+            } else if (dtype == ASM_DATA_DW) {
+                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
+                    parse_error(filename, start_line, start_col, "expected number for DW");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                int64_t val;
+                if (!parse_number(tokens->tokens[pos].value, &val) || val < 0 || val > 0xFFFF) {
+                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                               "DW value out of range");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                data_buf = malloc(2);
+                if (!data_buf) {
+                    parse_error(filename, start_line, start_col, "out of memory");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                data_buf[0] = (uint8_t)(val >> 8);
+                data_buf[1] = (uint8_t)val;
+                data_len = 2;
+                pos++;
+            } else if (dtype == ASM_DATA_STZ || dtype == ASM_DATA_STL) {
+                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_STRING) {
+                    parse_error(filename, start_line, start_col, "expected string");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+
+                const char *str = tokens->tokens[pos].value;
+                size_t str_len = tokens->tokens[pos].value_len;
+
+                size_t needed = str_len;
+                if (dtype == ASM_DATA_STZ) {
+                    needed += 1;
+                } else {
+                    needed += 2;
+                }
+
+                data_buf = malloc(needed);
+                if (!data_buf) {
+                    parse_error(filename, start_line, start_col, "out of memory");
+                    free(data_label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+
+                if (dtype == ASM_DATA_STL) {
+                    data_buf[0] = (uint8_t)(str_len >> 8);
+                    data_buf[1] = (uint8_t)str_len;
+                    memcpy(data_buf + 2, str, str_len);
+                    data_len = 2 + str_len;
+                } else {
+                    memcpy(data_buf, str, str_len);
+                    data_buf[str_len] = 0;
+                    data_len = str_len + 1;
+                }
+                pos++;
+            } else {
+                parse_error(filename, start_line, start_col, "DX not yet implemented");
+                free(data_label);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
+                parse_error(filename, start_line, start_col, "expected newline after :data");
+                free(data_buf);
+                free(data_label);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            ASMProgramLine *line = calloc(1, sizeof(ASMProgramLine));
+            if (!line) {
+                parse_error(filename, start_line, start_col, "out of memory");
+                free(data_buf);
+                free(data_label);
+                asm_free_program(program);
+                return NULL;
+            }
+            line->type = ASM_PROGRAM_LINE_DATA;
+            line->line_number = start_line;
+            line->address = current_address;
+            line->data.type = dtype;
+            line->data.data = data_buf;
+            line->data.data_length = data_len;
+
+            current_address += data_len;
+
+            if (!program_append_line(program, line)) {
+                free(data_buf);
+                free(data_label);
+                free(line);
+                parse_error(filename, start_line, start_col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+
+            free(data_label);
+            pos++;
+            continue;
+        }
+
         parse_error(filename, tok->line, tok->col, "unexpected token");
         asm_free_program(program);
         return NULL;
