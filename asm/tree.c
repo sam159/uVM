@@ -1,12 +1,12 @@
 #define _POSIX_C_SOURCE 200809L
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "tree.h"
 #include "token.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
-    ASMProgram *program = (ASMProgram *)calloc(1, sizeof(ASMProgram));
+    ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
         return NULL;
     }

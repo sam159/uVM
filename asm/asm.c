@@ -37,14 +37,6 @@ bool asm_compile(const char *input, const char *output) {
     fprintf(stderr, "Assembling '%s' -> '%s'\n", input, output);
 
     bool success = true;
-
-    ASMProgram *program = calloc(1, sizeof(ASMProgram));
-    if (!program) {
-        fclose(f_in);
-        free(outputTemp);
-        fclose(f_out);
-        return false;
-    }
     
     char *line = NULL;
     size_t len = 0;
@@ -54,7 +46,6 @@ bool asm_compile(const char *input, const char *output) {
         fclose(f_in);
         free(outputTemp);
         fclose(f_out);
-        free(program);
         return false;
     }
 
@@ -82,6 +73,8 @@ bool asm_compile(const char *input, const char *output) {
         asm_token_list_free(lineTokens);
     }
     free(line);
+
+    ASMProgram *program = asm_parse(input, tokens);
 
     // TODO: parse program
 

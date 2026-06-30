@@ -2,7 +2,6 @@
 #define UVM_ASM_TREE_H
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
 #include "token.h"
 
 typedef struct ASMProgram ASMProgram;
