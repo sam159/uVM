@@ -96,6 +96,26 @@ static int parse_reg16_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInst
     return 0;
 }
 
+static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
+    if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
+    if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }
+    if (strcmp(s, "STA") == 0) { *op = ASM_INST_STA; return 1; }
+    if (strcmp(s, "LDI") == 0) { *op = ASM_INST_LDI; return 1; }
+    if (strcmp(s, "ADD") == 0) { *op = ASM_INST_ADD; return 1; }
+    if (strcmp(s, "ADC") == 0) { *op = ASM_INST_ADC; return 1; }
+    if (strcmp(s, "SUB") == 0) { *op = ASM_INST_SUB; return 1; }
+    if (strcmp(s, "SBC") == 0) { *op = ASM_INST_SBC; return 1; }
+    if (strcmp(s, "NOT") == 0) { *op = ASM_INST_NOT; return 1; }
+    if (strcmp(s, "AND") == 0) { *op = ASM_INST_AND; return 1; }
+    if (strcmp(s, "SHL") == 0) { *op = ASM_INST_SHL; return 1; }
+    if (strcmp(s, "SHR") == 0) { *op = ASM_INST_SHR; return 1; }
+    if (strcmp(s, "JMP") == 0) { *op = ASM_INST_JMP; return 1; }
+    if (strcmp(s, "JPF") == 0) { *op = ASM_INST_SYS; return 1; }
+    if (strcmp(s, "JNZ") == 0) { *op = ASM_INST_JEQ; return 1; }
+    if (strcmp(s, "JPC") == 0) { *op = ASM_INST_JLT; return 1; }
+    return 0;
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
@@ -482,6 +502,76 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             }
 
             free(data_label);
+            pos++;
+            continue;
+        }
+
+        if (tok->type == ASM_TOKEN_LABEL || tok->type == ASM_TOKEN_OPCODE) {
+            int start_line = tok->line;
+            int start_col = tok->col;
+
+            char *label = NULL;
+
+            if (tok->type == ASM_TOKEN_LABEL) {
+                label = malloc(tok->value_len + 1);
+                if (!label) {
+                    parse_error(filename, tok->line, tok->col, "out of memory");
+                    asm_free_program(program);
+                    return NULL;
+                }
+                strcpy(label, tok->value);
+                pos++;
+
+                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_OPCODE) {
+                    parse_error(filename, start_line, start_col, "expected opcode after label");
+                    free(label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                tok = &tokens->tokens[pos];
+            }
+
+            ASMProgramInstructionType opcode;
+            if (!opcode_from_string(tok->value, &opcode)) {
+                parse_error(filename, tok->line, tok->col, "unknown opcode");
+                free(label);
+                asm_free_program(program);
+                return NULL;
+            }
+            pos++;
+
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
+                parse_error(filename, start_line, start_col, "expected newline after instruction");
+                free(label);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            ASMProgramLine *line = calloc(1, sizeof(ASMProgramLine));
+            if (!line) {
+                parse_error(filename, start_line, start_col, "out of memory");
+                free(label);
+                asm_free_program(program);
+                return NULL;
+            }
+            line->type = ASM_PROGRAM_LINE_INSTRUCTION;
+            line->line_number = start_line;
+            line->address = current_address;
+            line->instruction.label = label;
+            line->instruction.op = opcode;
+            line->instruction.operands = NULL;
+            line->instruction.operand_count = 0;
+
+            current_address += 1;
+
+            if (!program_append_line(program, line)) {
+                free(label);
+                free(line);
+                parse_error(filename, start_line, start_col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+
             pos++;
             continue;
         }
