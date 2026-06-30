@@ -34,6 +34,15 @@ bool asm_compile(const char *input, const char *output) {
             line[--llen] = '\0';
         }
 
+        // Enforce maximum line length
+        if (llen > 1024) {
+            fprintf(stderr, "Error: line %d exceeds 1024 characters (%zu chars)\n", line_num, llen);
+            free(line);
+            fclose(f_in);
+            fclose(f_out);
+            return false;
+        }
+
         AsmToken *tokens = NULL;
         int count = asm_tokenize_line(line, line_num, &tokens);
 
@@ -45,7 +54,7 @@ bool asm_compile(const char *input, const char *output) {
                     tokens[i].value);
         }
 
-        asm_free_tokens(tokens);
+        asm_free_tokens(tokens, count);
     }
     free(line);
 

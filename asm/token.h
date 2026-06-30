@@ -24,13 +24,14 @@ typedef enum {
 
 typedef struct {
     AsmTokenType type;
-    char value[128];
+    char *value;
+    int value_len;
     int line;
     int col;
 } AsmToken;
 
 int asm_tokenize_line(const char *line, int line_num, AsmToken **tokens);
-void asm_free_tokens(AsmToken *tokens);
+void asm_free_tokens(AsmToken *tokens, int count);
 const char *asm_token_type_name(AsmTokenType type);
 
 #endif //UVM_TOKEN_H
