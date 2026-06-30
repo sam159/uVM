@@ -36,6 +36,24 @@ static int parse_number(const char *s, int64_t *out) {
     }
 }
 
+static int parse_register_id(const char *s) {
+    if (!s) return -1;
+
+    if (s[0] == 'R') {
+        if (s[1] == 'Z') return 0;
+        if (s[1] >= '0' && s[1] <= '9') return s[1] - '0';
+        if (s[1] >= 'A' && s[1] <= 'F') return 10 + (s[1] - 'A');
+    }
+
+    if (s[0] == 'R' && s[1] == 'X') {
+        if (s[2] == 'Z') return 0;
+        if (s[2] >= '0' && s[2] <= '9') return s[2] - '0';
+        if (s[2] >= 'A' && s[2] <= 'F') return 10 + (s[2] - 'A');
+    }
+
+    return -1;
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
@@ -152,6 +170,95 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 asm_free_program(program);
                 return NULL;
             }
+            pos++;
+            continue;
+        }
+
+        if (tok->type == ASM_TOKEN_IDENT && tok->value[0] == '$') {
+            int start_line = tok->line;
+            int start_col = tok->col;
+
+            char *var_name = malloc(tok->value_len + 1);
+            if (!var_name) {
+                parse_error(filename, tok->line, tok->col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+            strcpy(var_name, tok->value);
+            pos++;
+
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_SYMBOL ||
+                tokens->tokens[pos].value[0] != '=') {
+                parse_error(filename, start_line, start_col, "expected '=' after alias name");
+                free(var_name);
+                asm_free_program(program);
+                return NULL;
+            }
+            pos++;
+
+            if (pos >= tokens->count) {
+                parse_error(filename, start_line, start_col, "expected value after '='");
+                free(var_name);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            int64_t value = 0;
+            if (tokens->tokens[pos].type == ASM_TOKEN_NUMBER) {
+                if (!parse_number(tokens->tokens[pos].value, &value)) {
+                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                               "invalid number");
+                    free(var_name);
+                    asm_free_program(program);
+                    return NULL;
+                }
+            } else if (tokens->tokens[pos].type == ASM_TOKEN_REGISTER) {
+                int reg_id = parse_register_id(tokens->tokens[pos].value);
+                if (reg_id < 0) {
+                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                               "invalid register");
+                    free(var_name);
+                    asm_free_program(program);
+                    return NULL;
+                }
+                value = reg_id;
+            } else {
+                parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                           "expected number or register");
+                free(var_name);
+                asm_free_program(program);
+                return NULL;
+            }
+            pos++;
+
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
+                parse_error(filename, start_line, start_col, "expected newline after alias");
+                free(var_name);
+                asm_free_program(program);
+                return NULL;
+            }
+
+            ASMProgramLine *line = calloc(1, sizeof(ASMProgramLine));
+            if (!line) {
+                parse_error(filename, start_line, start_col, "out of memory");
+                free(var_name);
+                asm_free_program(program);
+                return NULL;
+            }
+            line->type = ASM_PROGRAM_LINE_ALIAS;
+            line->line_number = start_line;
+            line->address = current_address;
+            line->alias.variable = var_name;
+            line->alias.value = value;
+
+            if (!program_append_line(program, line)) {
+                free(var_name);
+                free(line);
+                parse_error(filename, start_line, start_col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+
             pos++;
             continue;
         }
