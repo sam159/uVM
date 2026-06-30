@@ -109,8 +109,8 @@ static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "AND") == 0) { *op = ASM_INST_AND; return 1; }
     if (strcmp(s, "SHL") == 0) { *op = ASM_INST_SHL; return 1; }
     if (strcmp(s, "SHR") == 0) { *op = ASM_INST_SHR; return 1; }
-    if (strcmp(s, "JMP") == 0) { *op = ASM_INST_JMP; return 1; }
-    if (strcmp(s, "JPF") == 0) { *op = ASM_INST_SYS; return 1; }
+    if (strcmp(s, "JMP") == 0) { *op = ASM_INST_SYS; return 1; }
+    if (strcmp(s, "JPF") == 0) { *op = ASM_INST_JMP; return 1; }
     if (strcmp(s, "JNZ") == 0) { *op = ASM_INST_JEQ; return 1; }
     if (strcmp(s, "JPC") == 0) { *op = ASM_INST_JLT; return 1; }
     return 0;
