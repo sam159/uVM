@@ -65,10 +65,10 @@ typedef enum {
     ASM_INST_AND = 9,
     ASM_INST_SHL = 0xa,
     ASM_INST_SHR = 0xb,
-    ASM_INST_SYS = 0xc,
-    ASM_INST_JMP = 0xd,
-    ASM_INST_JEQ = 0xe,
-    ASM_INST_JLT = 0xf,
+    ASM_INST_JMP = 0xc,
+    ASM_INST_JPF = 0xd,
+    ASM_INST_JNZ = 0xe,
+    ASM_INST_JPC = 0xf,
 } ASMProgramInstructionType;
 
 /* ASMProgramInstructionOperandTestType */
