@@ -18,6 +18,24 @@ static int program_append_line(ASMProgram *program, ASMProgramLine *line) {
     return 1;
 }
 
+static int parse_number(const char *s, int64_t *out) {
+    if (!s || !out) return 0;
+    if (*s == '+') s++;
+    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
+        char *end;
+        *out = strtoll(s, &end, 16);
+        return *end == '\0';
+    } else if (s[0] == '0' && (s[1] == 'b' || s[1] == 'B')) {
+        char *end;
+        *out = strtoll(s + 2, &end, 2);
+        return *end == '\0';
+    } else {
+        char *end;
+        *out = strtoll(s, &end, 10);
+        return *end == '\0';
+    }
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
@@ -94,6 +112,47 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 pos++;
             }
             if (pos < tokens->count) pos++;
+            continue;
+        }
+
+        if (tok->type == ASM_TOKEN_ORIGIN) {
+            pos++;
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
+                parse_error(filename, tok->line, tok->col, "expected number after :origin");
+                asm_free_program(program);
+                return NULL;
+            }
+            int64_t addr;
+            if (!parse_number(tokens->tokens[pos].value, &addr) || addr < 0 || addr > 0xFFFF) {
+                parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                           "invalid origin address");
+                asm_free_program(program);
+                return NULL;
+            }
+            current_address = (uint16_t)addr;
+            pos++;
+            if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
+                parse_error(filename, tok->line, tok->col, "expected newline after :origin");
+                asm_free_program(program);
+                return NULL;
+            }
+            ASMProgramLine *line = calloc(1, sizeof(ASMProgramLine));
+            if (!line) {
+                parse_error(filename, tok->line, tok->col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+            line->type = ASM_PROGRAM_LINE_ORIGIN;
+            line->line_number = tok->line;
+            line->address = current_address;
+            line->origin.address = current_address;
+            if (!program_append_line(program, line)) {
+                free(line);
+                parse_error(filename, tok->line, tok->col, "out of memory");
+                asm_free_program(program);
+                return NULL;
+            }
+            pos++;
             continue;
         }
 
