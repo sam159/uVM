@@ -74,7 +74,7 @@ bool asm_compile(const char *input, const char *output) {
     }
     free(line);
 
-    AsmToken eof = {ASM_TOKEN_EOF, "", 0, lineNum + 1, 1};
+    AsmToken eof = {ASM_TOKEN_EOF, strdup(""), 0, lineNum + 1, 1};
     asm_token_list_append(tokens, eof);
 
     ASMProgram *program = asm_parse(input, tokens);
