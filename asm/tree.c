@@ -188,6 +188,78 @@ static int parse_rel_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstru
     return 0;
 }
 
+static int parse_mem_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != '[') {
+        return 0;
+    }
+    (*pos)++;
+
+    tok = &tokens->tokens[*pos];
+    if (tok->type != ASM_TOKEN_REGISTER || tok->value[0] != 'R' || tok->value[1] != 'X') {
+        return 0;
+    }
+
+    int reg_id = parse_register_id(tok->value);
+    if (reg_id < 0) {
+        return 0;
+    }
+    (*pos)++;
+
+    tok = &tokens->tokens[*pos];
+    if (tok->type == ASM_TOKEN_SYMBOL && tok->value[0] == ']') {
+        op->type = ASM_OPERAND_REG16;
+        op->reg8 = (uint8_t)reg_id;
+        (*pos)++;
+        return 1;
+    }
+
+    if (tok->type == ASM_TOKEN_SYMBOL && tok->value[0] == '+') {
+        (*pos)++;
+        tok = &tokens->tokens[*pos];
+
+        int8_t offset = 0;
+        if (tok->type == ASM_TOKEN_NUMBER) {
+            int64_t val;
+            if (!parse_number(tok->value, &val) || val < -128 || val > 127) {
+                return 0;
+            }
+            offset = (int8_t)val;
+            (*pos)++;
+        } else if (tok->type == ASM_TOKEN_LABEL_REF) {
+            op->type = ASM_OPERAND_LABEL;
+            op->label = malloc(tok->value_len);
+            if (!op->label) return 0;
+            strncpy(op->label, tok->value + 1, tok->value_len - 1);
+            op->label[tok->value_len - 1] = '\0';
+            (*pos)++;
+
+            tok = &tokens->tokens[*pos];
+            if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ']') {
+                return 0;
+            }
+            (*pos)++;
+            return 1;
+        } else {
+            return 0;
+        }
+
+        tok = &tokens->tokens[*pos];
+        if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ']') {
+            return 0;
+        }
+
+        op->type = ASM_OPERAND_REG16_REL;
+        op->reg16_rel.register_id = (uint8_t)reg_id;
+        op->reg16_rel.offset = offset;
+        (*pos)++;
+        return 1;
+    }
+
+    return 0;
+}
+
 static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
     if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }
