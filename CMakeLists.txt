@@ -62,3 +62,6 @@ target_include_directories(test_dx PRIVATE asm)
 
 add_executable(test_resolve tests/test_resolve.c ${ASM_SOURCES})
 target_include_directories(test_resolve PRIVATE asm)
+
+add_executable(test_emit tests/test_emit.c ${ASM_SOURCES})
+target_include_directories(test_emit PRIVATE asm)

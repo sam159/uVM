@@ -1,5 +1,6 @@
 #ifndef UVM_ASM_TREE_H
 #define UVM_ASM_TREE_H
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "token.h"
@@ -168,5 +169,7 @@ void asm_free_program(ASMProgram *program);
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens);
 
 bool asm_resolve(ASMProgram *program);
+
+bool asm_emit(ASMProgram *program, FILE *f_out);
 
 #endif //UVM_ASM_TREE_H

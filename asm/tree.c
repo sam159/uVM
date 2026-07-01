@@ -1216,3 +1216,225 @@ void asm_free_program(ASMProgram *program) {
 
     free(program);
 }
+
+static int test_bits_from_type(ASMProgramInstructionOperandTestType type) {
+    switch (type) {
+        case ASM_TEST_EQ:  return 0x1;
+        case ASM_TEST_LT:  return 0x2;
+        case ASM_TEST_LTE: return 0x3;
+        case ASM_TEST_GT:  return 0x4;
+        case ASM_TEST_GTE: return 0x5;
+    }
+    return 0;
+}
+
+static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
+    const ASMProgramInstruction *inst = &line->instruction;
+    uint8_t op = (uint8_t)inst->op;
+    uint16_t raw;
+
+    switch (inst->op) {
+        case ASM_INST_LDI: {
+            uint8_t rd = inst->operands[0].reg8;
+            uint16_t val;
+            if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
+                val = inst->operands[1].value16;
+            } else {
+                val = inst->operands[1].value8;
+            }
+            if (val > 255) {
+                fprintf(stderr, "%s: LDI operand %u exceeds 8 bits\n", "asm_emit", val);
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | (uint8_t)val;
+            break;
+        }
+        case ASM_INST_JPF: {
+            uint8_t rd;
+            uint8_t imm;
+            if (inst->operands[0].type == ASM_OPERAND_REG16) {
+                rd = inst->operands[0].reg8;
+                imm = 0;
+            } else if (inst->operands[0].type == ASM_OPERAND_REG16_REL) {
+                rd = inst->operands[0].reg16_rel.register_id;
+                imm = (uint8_t)(int8_t)inst->operands[0].reg16_rel.offset;
+            } else {
+                fprintf(stderr, "error: JPF expected REG16 or REG16_REL operand\n");
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | imm;
+            break;
+        }
+        case ASM_INST_JNZ: {
+            uint8_t rd = inst->operands[0].reg8;
+            int16_t rel = inst->operands[1].rel;
+            if (rel & 1) {
+                fprintf(stderr, "error: JNZ odd relative offset %d\n", rel);
+                return false;
+            }
+            int16_t words = rel / 2;
+            if (words < -128 || words > 127) {
+                fprintf(stderr, "error: JNZ relative offset %d out of range\n", rel);
+                return false;
+            }
+            uint8_t imm = (uint8_t)(int8_t)words;
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | imm;
+            break;
+        }
+
+        case ASM_INST_ADD:
+        case ASM_INST_ADC:
+        case ASM_INST_SUB:
+        case ASM_INST_SBC:
+        case ASM_INST_AND: {
+            uint8_t rd = inst->operands[0].reg8;
+            uint8_t rx = inst->operands[1].reg8;
+            uint8_t ry = inst->operands[2].reg8;
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | ry;
+            break;
+        }
+
+        case ASM_INST_LDA: {
+            uint8_t rd = inst->operands[0].reg8;
+            uint8_t rx, imm;
+            if (inst->operands[1].type == ASM_OPERAND_REG16) {
+                rx = inst->operands[1].reg8;
+                imm = 0;
+            } else if (inst->operands[1].type == ASM_OPERAND_REG16_REL) {
+                rx = inst->operands[1].reg16_rel.register_id;
+                imm = (uint8_t)(inst->operands[1].reg16_rel.offset & 0xF);
+            } else {
+                fprintf(stderr, "error: LDA expected REG16 or REG16_REL operand\n");
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            break;
+        }
+        case ASM_INST_STA: {
+            uint8_t rx = inst->operands[1].reg8;
+            uint8_t rd, imm;
+            if (inst->operands[0].type == ASM_OPERAND_REG16) {
+                rd = inst->operands[0].reg8;
+                imm = 0;
+            } else if (inst->operands[0].type == ASM_OPERAND_REG16_REL) {
+                rd = inst->operands[0].reg16_rel.register_id;
+                imm = (uint8_t)(inst->operands[0].reg16_rel.offset & 0xF);
+            } else {
+                fprintf(stderr, "error: STA expected REG16 or REG16_REL operand\n");
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            break;
+        }
+        case ASM_INST_NOT: {
+            uint8_t rd = inst->operands[0].reg8;
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rd << 4) | 0;
+            break;
+        }
+        case ASM_INST_SHL:
+        case ASM_INST_SHR: {
+            uint8_t rd = inst->operands[0].reg8;
+            uint16_t val;
+            if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
+                val = inst->operands[1].value16;
+            } else {
+                val = inst->operands[1].value8;
+            }
+            if (val > 15) {
+                fprintf(stderr, "error: shift amount %u exceeds 4 bits\n", val);
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rd << 4) | (uint8_t)val;
+            break;
+        }
+        case ASM_INST_JPC: {
+            uint8_t rd = inst->operands[0].reg8;
+            uint8_t rx = inst->operands[2].reg8;
+            int test_bits = test_bits_from_type(inst->operands[1].test.type);
+            if (inst->operands[1].test.negated) test_bits |= 0x8;
+            uint8_t imm = (uint8_t)test_bits;
+            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            break;
+        }
+
+        case ASM_INST_HLT: {
+            uint16_t val;
+            if (inst->operands[0].type == ASM_OPERAND_VALUE16) {
+                val = inst->operands[0].value16;
+            } else {
+                val = inst->operands[0].value8;
+            }
+            if (val > 0xFFF) {
+                fprintf(stderr, "error: HLT operand %u exceeds 12 bits\n", val);
+                return false;
+            }
+            raw = ((uint16_t)op << 12) | (val & 0xFFF);
+            break;
+        }
+        case ASM_INST_JMP: {
+            int16_t rel = inst->operands[0].rel;
+            if (rel & 1) {
+                fprintf(stderr, "error: JMP odd relative offset %d\n", rel);
+                return false;
+            }
+            int16_t words = rel / 2;
+            if (words < -2048 || words > 2047) {
+                fprintf(stderr, "error: JMP relative offset %d out of range\n", rel);
+                return false;
+            }
+            uint16_t imm12 = (uint16_t)(int16_t)words & 0xFFF;
+            raw = ((uint16_t)op << 12) | imm12;
+            break;
+        }
+
+        default:
+            fprintf(stderr, "error: unknown opcode %u\n", op);
+            return false;
+    }
+
+    fputc((raw >> 8) & 0xFF, f);
+    fputc(raw & 0xFF, f);
+    if (ferror(f)) return false;
+    return true;
+}
+
+bool asm_emit(ASMProgram *program, FILE *f_out) {
+    if (!program || !f_out) return false;
+
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        ASMProgramLine *line = program->lines[i];
+
+        switch (line->type) {
+            case ASM_PROGRAM_LINE_INSTRUCTION:
+                if (!emit_instruction(f_out, line)) return false;
+                break;
+
+            case ASM_PROGRAM_LINE_DATA:
+                if (fwrite(line->data.data, 1, line->data.data_length, f_out) != line->data.data_length) {
+                    return false;
+                }
+                break;
+
+            case ASM_PROGRAM_LINE_ORIGIN: {
+                long current = ftell(f_out);
+                if (current < 0) return false;
+                if ((uint16_t)current > line->address) {
+                    fprintf(stderr, "error: cannot set origin backward from %ld to %u\n",
+                            current, line->address);
+                    return false;
+                }
+                while (ftell(f_out) < line->address) {
+                    fputc(0, f_out);
+                    if (ferror(f_out)) return false;
+                }
+                break;
+            }
+
+            case ASM_PROGRAM_LINE_ALIAS:
+            case ASM_PROGRAM_LINE_EMPTY:
+                break;
+        }
+    }
+
+    return !ferror(f_out);
+}
