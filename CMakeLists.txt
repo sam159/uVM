@@ -30,5 +30,8 @@ target_include_directories(test_instruction PRIVATE asm)
 add_executable(test_operand_reg tests/test_operand_reg.c ${ASM_SOURCES})
 target_include_directories(test_operand_reg PRIVATE asm)
 
+add_executable(test_operand_value tests/test_operand_value.c ${ASM_SOURCES})
+target_include_directories(test_operand_value PRIVATE asm)
+
 add_executable(test_origin tests/test_origin.c ${ASM_SOURCES})
 target_include_directories(test_origin PRIVATE asm)
