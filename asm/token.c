@@ -250,47 +250,62 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 col++;
             }
             int len = (int)(p - idstart);
+            char *ident = (char *)malloc((size_t)len + 1);
+            if (!ident) {
+                asm_token_list_free(list);
+                return NULL;
+            }
+            memcpy(ident, idstart, (size_t)len);
+            ident[len] = '\0';
 
             if (at_line_start && p[0] == ':') {
                 p++;
                 col++;
-                asm_token_list_append(list, new_token(ASM_TOKEN_LABEL, idstart, len, line_num, start_col));
+                asm_token_list_append(list, new_token(ASM_TOKEN_LABEL, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
 
-            if (strcmp(idstart, "origin") == 0 && at_line_start) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_ORIGIN, idstart, len, line_num, start_col));
+            if (strcmp(ident, "origin") == 0 && at_line_start) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_ORIGIN, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
-            if (strcmp(idstart, "data") == 0 && at_line_start) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_DATA, idstart, len, line_num, start_col));
+            if (strcmp(ident, "data") == 0 && at_line_start) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_DATA, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
-            if (is_opcode(idstart)) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_OPCODE, idstart, len, line_num, start_col));
+            if (is_opcode(ident)) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_OPCODE, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
-            if (is_test(idstart)) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_TEST, idstart, len, line_num, start_col));
+            if (is_test(ident)) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_TEST, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
-            if (is_datatype(idstart)) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_DATA_TYPE, idstart, len, line_num, start_col));
+            if (is_datatype(ident)) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_DATA_TYPE, ident, len, line_num, start_col));
                 at_line_start = false;
+                free(ident);
                 continue;
             }
-            if (is_register(idstart)) {
-                asm_token_list_append(list, new_token(ASM_TOKEN_REGISTER, idstart, len, line_num, start_col));
+            if (is_register(ident)) {
+                asm_token_list_append(list, new_token(ASM_TOKEN_REGISTER, ident, len, line_num, start_col));
+                free(ident);
                 continue;
             }
 
-            asm_token_list_append(list, new_token(ASM_TOKEN_IDENT, idstart, len, line_num, start_col));
+            asm_token_list_append(list, new_token(ASM_TOKEN_IDENT, ident, len, line_num, start_col));
             at_line_start = false;
+            free(ident);
             continue;
         }
 
