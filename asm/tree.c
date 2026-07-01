@@ -148,6 +148,46 @@ static int parse_value_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInst
     return 0;
 }
 
+static int parse_rel_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type == ASM_TOKEN_LABEL_REF) {
+        op->type = ASM_OPERAND_LABEL;
+        op->label = malloc(tok->value_len);
+        if (!op->label) return 0;
+        strncpy(op->label, tok->value + 1, tok->value_len - 1);
+        op->label[tok->value_len - 1] = '\0';
+        (*pos)++;
+        return 1;
+    }
+
+    int sign = 1;
+    if (tok->type == ASM_TOKEN_SYMBOL) {
+        if (tok->value[0] == '+') {
+            sign = 1;
+        } else if (tok->value[0] == '-') {
+            sign = -1;
+        } else {
+            return 0;
+        }
+        (*pos)++;
+        tok = &tokens->tokens[*pos];
+    }
+
+    if (tok->type == ASM_TOKEN_NUMBER) {
+        int64_t val;
+        if (!parse_number(tok->value, &val)) {
+            return 0;
+        }
+        op->type = ASM_OPERAND_REL;
+        op->rel = (int16_t)(sign * val);
+        (*pos)++;
+        return 1;
+    }
+
+    return 0;
+}
+
 static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
     if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }

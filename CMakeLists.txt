@@ -35,3 +35,6 @@ target_include_directories(test_operand_value PRIVATE asm)
 
 add_executable(test_origin tests/test_origin.c ${ASM_SOURCES})
 target_include_directories(test_origin PRIVATE asm)
+
+add_executable(test_operand_rel tests/test_operand_rel.c ${ASM_SOURCES})
+target_include_directories(test_operand_rel PRIVATE asm)
