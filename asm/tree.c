@@ -99,6 +99,55 @@ static int parse_reg16_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInst
     return 0;
 }
 
+static int parse_value_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type == ASM_TOKEN_NUMBER) {
+        int64_t val;
+        if (!parse_number(tok->value, &val)) {
+            return 0;
+        }
+        op->type = ASM_OPERAND_VALUE16;
+        op->value16 = (uint16_t)val;
+        (*pos)++;
+        return 1;
+    } else if (tok->type == ASM_TOKEN_IDENT && tok->value[0] == '$') {
+        op->type = ASM_OPERAND_VARIABLE;
+        op->variable = malloc(tok->value_len + 1);
+        if (!op->variable) return 0;
+        strcpy(op->variable, tok->value);
+        (*pos)++;
+        return 1;
+    } else if (tok->type == ASM_TOKEN_LABEL_REF) {
+        const char *ref = tok->value;
+        size_t len = tok->value_len;
+
+        if (len >= 4 && ref[len-1] == 'h' && ref[len-2] == ':') {
+            op->type = ASM_OPERAND_LABEL_HIGH;
+            op->label = malloc(len - 2);
+            if (!op->label) return 0;
+            strncpy(op->label, ref + 1, len - 3);
+            op->label[len - 3] = '\0';
+        } else if (len >= 4 && ref[len-1] == 'l' && ref[len-2] == ':') {
+            op->type = ASM_OPERAND_LABEL_LOW;
+            op->label = malloc(len - 2);
+            if (!op->label) return 0;
+            strncpy(op->label, ref + 1, len - 3);
+            op->label[len - 3] = '\0';
+        } else {
+            op->type = ASM_OPERAND_LABEL;
+            op->label = malloc(len);
+            if (!op->label) return 0;
+            strncpy(op->label, ref + 1, len - 1);
+            op->label[len - 1] = '\0';
+        }
+        (*pos)++;
+        return 1;
+    }
+
+    return 0;
+}
+
 static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
     if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }
