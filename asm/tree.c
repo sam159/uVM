@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "tree.h"
 #include "token.h"
 
@@ -821,8 +822,39 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                     data_len = str_len + 1;
                 }
                 pos++;
+            } else if (dtype == ASM_DATA_DX) {
+                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
+                    parse_error(filename, start_line, start_col, "expected hex number for DX");
+                    goto fail;
+                }
+                const char *hex_str = tokens->tokens[pos].value;
+                const char *digits = hex_str;
+                if (digits[0] == '0' && (digits[1] == 'x' || digits[1] == 'X')) {
+                    digits += 2;
+                }
+                size_t digit_len = strlen(digits);
+                if (digit_len == 0 || digit_len % 2 != 0) {
+                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                               "DX requires an even number of hex digits");
+                    goto fail;
+                }
+                for (size_t i = 0; i < digit_len; i++) {
+                    if (!isxdigit((unsigned char)digits[i])) {
+                        parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                                   "DX: invalid hex digit");
+                        goto fail;
+                    }
+                }
+                data_len = (uint32_t)(digit_len / 2);
+                data_buf = malloc(data_len);
+                if (!data_buf) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+                for (uint32_t i = 0; i < data_len; i++) {
+                    char byte_str[3] = {digits[i * 2], digits[i * 2 + 1], '\0'};
+                    data_buf[i] = (uint8_t)strtoul(byte_str, NULL, 16);
+                }
+                pos++;
             } else {
-                parse_error(filename, start_line, start_col, "DX not yet implemented");
+                parse_error(filename, start_line, start_col, "unknown data type");
                 goto fail;
             }
 
