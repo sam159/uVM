@@ -179,8 +179,12 @@ static int parse_rel_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstru
         if (!parse_number(tok->value, &val)) {
             return 0;
         }
+        int64_t scaled = sign * val;
+        if (scaled < -32768 || scaled > 32767) {
+            return 0;
+        }
         op->type = ASM_OPERAND_REL;
-        op->rel = (int16_t)(sign * val);
+        op->rel = (int16_t)scaled;
         (*pos)++;
         return 1;
     }
@@ -237,6 +241,7 @@ static int parse_mem_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstru
 
             tok = &tokens->tokens[*pos];
             if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ']') {
+                free(op->label);
                 return 0;
             }
             (*pos)++;
@@ -318,16 +323,7 @@ static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
 static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
                             ASMProgramInstructionOperand **operands, uint32_t *operand_count,
                             const char *filename, int line, int col) {
-    if (opcode == ASM_INST_HLT) {
-        *operands = malloc(sizeof(ASMProgramInstructionOperand));
-        if (!*operands) return 0;
-        if (!parse_value_operand(tokens, pos, *operands)) {
-            parse_error(filename, line, col, "expected value12 for HLT");
-            free(*operands);
-            return 0;
-        }
-        *operand_count = 1;
-    } else if (opcode == ASM_INST_JPF) {
+    if (opcode == ASM_INST_JPF) {
         *operands = malloc(sizeof(ASMProgramInstructionOperand));
         if (!*operands) return 0;
         if (!parse_mem_operand(tokens, pos, *operands)) {
@@ -349,6 +345,7 @@ static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         AsmToken *tok = &tokens->tokens[*pos];
         if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
             parse_error(filename, line, col, "expected ',' after reg8");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -356,6 +353,7 @@ static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         
         if (!parse_rel_operand(tokens, pos, &(*operands)[1])) {
             parse_error(filename, line, col, "expected relative address for JNZ");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -467,6 +465,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         AsmToken *tok = &tokens->tokens[*pos];
         if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
             parse_error(filename, line, col, "expected ','");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -474,6 +473,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
         if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
             parse_error(filename, line, col, "expected value8");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -501,6 +501,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         AsmToken *tok = &tokens->tokens[*pos];
         if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
             parse_error(filename, line, col, "expected ','");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -508,6 +509,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
         if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
             parse_error(filename, line, col, "expected value4");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -525,6 +527,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         AsmToken *tok = &tokens->tokens[*pos];
         if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
             parse_error(filename, line, col, "expected ','");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -532,6 +535,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
         if (!parse_test_operand(tokens, pos, &(*operands)[1])) {
             parse_error(filename, line, col, "expected test");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -539,6 +543,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         tok = &tokens->tokens[*pos];
         if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
             parse_error(filename, line, col, "expected ','");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
@@ -546,10 +551,14 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[2])) {
             parse_error(filename, line, col, "expected reg8");
+            if ((*operands)[0].type == ASM_OPERAND_VARIABLE) free((*operands)[0].variable);
             free(*operands);
             return 0;
         }
         *operand_count = 3;
+    } else {
+        parse_error(filename, line, col, "unknown T format opcode");
+        return 0;
     }
 
     return 1;
@@ -561,10 +570,18 @@ static int parse_operands_v(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
     *operands = malloc(sizeof(ASMProgramInstructionOperand));
     if (!*operands) return 0;
 
-    if (!parse_rel_operand(tokens, pos, &(*operands)[0])) {
-        parse_error(filename, line, col, "expected relative address");
-        free(*operands);
-        return 0;
+    if (opcode == ASM_INST_HLT) {
+        if (!parse_value_operand(tokens, pos, &(*operands)[0])) {
+            parse_error(filename, line, col, "expected value12 for HLT");
+            free(*operands);
+            return 0;
+        }
+    } else {
+        if (!parse_rel_operand(tokens, pos, &(*operands)[0])) {
+            parse_error(filename, line, col, "expected relative address");
+            free(*operands);
+            return 0;
+        }
     }
     *operand_count = 1;
     return 1;
@@ -997,7 +1014,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             ASMProgramInstructionOperand *operands = NULL;
             uint32_t operand_count = 0;
 
-            if (opcode == ASM_INST_HLT || opcode == ASM_INST_JPF || opcode == ASM_INST_JNZ) {
+            if (opcode == ASM_INST_JPF || opcode == ASM_INST_JNZ) {
                 if (!parse_operands_q(tokens, &pos, opcode, &operands, &operand_count,
                                       filename, start_line, start_col)) {
                     free(label);
@@ -1021,7 +1038,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                     asm_free_program(program);
                     return NULL;
                 }
-            } else if (opcode == ASM_INST_JMP) {
+            } else if (opcode == ASM_INST_JMP || opcode == ASM_INST_HLT) {
                 if (!parse_operands_v(tokens, &pos, opcode, &operands, &operand_count,
                                       filename, start_line, start_col)) {
                     free(label);
