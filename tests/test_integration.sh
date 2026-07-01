@@ -8,7 +8,6 @@ echo "Testing example programs..."
 
 PASS=0
 FAIL=0
-ERRORS=0
 
 for asm_file in programs/*.asm programs/*/*.asm; do
     if [ -f "$asm_file" ]; then
@@ -25,9 +24,8 @@ for asm_file in programs/*.asm programs/*/*.asm; do
             echo "CRASH (signal $((exit_code - 128)))"
             FAIL=$((FAIL + 1))
         elif echo "$output" | grep -qi "error:"; then
-            # Parse error is expected for now (operand parsing not implemented)
-            echo "PARSE ERROR (expected)"
-            ERRORS=$((ERRORS + 1))
+            echo "FAIL (assembly error)"
+            FAIL=$((FAIL + 1))
         else
             echo "PASS"
             PASS=$((PASS + 1))
@@ -38,12 +36,10 @@ done
 echo ""
 echo "Summary:"
 echo "  Passed: $PASS"
-echo "  Parse errors: $ERRORS (expected - operand parsing not yet implemented)"
-echo "  Crashes: $FAIL"
-
+echo "  Failed: $FAIL"
 if [ $FAIL -gt 0 ]; then
-    echo "FAIL: $FAIL program(s) crashed"
+    echo "FAIL: $FAIL program(s) failed"
     exit 1
 fi
 
-echo "PASS: No crashes detected"
+echo "PASS: No failures detected"

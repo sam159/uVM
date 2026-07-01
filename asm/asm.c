@@ -83,6 +83,12 @@ bool asm_compile(const char *input, const char *output) {
         success = false;
     }
 
+    if (success && program) {
+        if (!asm_emit(program, f_out)) {
+            success = false;
+        }
+    }
+
     asm_free_program(program);
 
     if (success) {
