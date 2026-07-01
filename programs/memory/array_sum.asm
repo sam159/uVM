@@ -1,3 +1,8 @@
+; reset vector
+:origin 0
+        JMP     :start
+
+; main program
 :origin 0x100
 ; Array sum: sums 5 bytes stored as inline data
 ; Demonstrates LDA with pointer register, :data DB, and loop
@@ -12,17 +17,15 @@ $SUM = R2
 $CNT = R3
 $ELEM = R4
 
-        JMP     :init
-
 ; array data (jumped over at start)
 :data :array DB 1
 :data DB 2
 :data DB 3
 :data DB 4
 :data DB 5
+:data DB 0 ; padding
 
-:init
-        LDI     $ONE, 1
+start:  LDI     $ONE, 1
 
         ; point RXB at array start
         LDI     R6, :array:h
@@ -31,7 +34,7 @@ $ELEM = R4
         LDI     $SUM, 0             ; sum = 0
         LDI     $CNT, 5             ; 5 elements
 
-:loop   LDA     $ELEM, [RXB]        ; load current element
+loop:   LDA     $ELEM, [RXB]        ; load current element
         ADD     $SUM, $SUM, $ELEM   ; sum += element
         ADD     R7, R7, $ONE        ; advance pointer
         SUB     $CNT, $CNT, $ONE    ; count--

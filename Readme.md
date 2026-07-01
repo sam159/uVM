@@ -73,7 +73,7 @@ All jumps are in words/instructions.
 | Op  | Mnemonic | Format | Operation                          | Description                                                                               |
 |-----|----------|--------|------------------------------------|-------------------------------------------------------------------------------------------|
 | `0` | HLT      | V      | `exitcode ← imm12`                 | Halt the VM. Sets `halted = true`, and the exit code to `imm12`                           |
-| `1` | LDA      | T      | `rdx ← [rdx + imm4]`               | Load byte from memory at 16-bit address `rdx + imm4` into `rdx`                           |
+| `1` | LDA      | T      | `rd ← [rdx + imm4]`                | Load byte from memory at 16-bit address `rdx + imm4` into `rd`                            |
 | `2` | STA      | T      | `[rdx + imm4] ← rx`                | Store `rx` to memory at 16-bit address `rdx + imm4`                                       |
 | `3` | LDI      | Q      | `rd ← imm8`                        | Load `imm8` into `rd`                                                                     |
 | `4` | ADD      | S      | `rd ← rx + ry`                     | 8-bit add. Clears carry                                                                   |
@@ -137,3 +137,9 @@ Errors are reported via the `error` hook and halt the VM:
 3. Executes the operation, writing the result to `rd` via `vm_put_r()`.
 4. Increments PC by 2 (except for jumps which set PC directly).
 5. The main loop calls `vm_step()` repeatedly until `vm->halted` is true.
+
+
+## TODO
+
+- Allow DW data directives to reference labels
+- When assembling, check that instructions are word aligned

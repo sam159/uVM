@@ -1,3 +1,8 @@
+; reset vector
+:origin 0
+        JMP     :start
+
+; main program
 :origin 0x100
 ; Subroutine call/return pattern
 ; Calls a subroutine that doubles a value using register passing convention
@@ -8,7 +13,7 @@
 $ONE = R1
 $ARG = R2
 
-        LDI     $ONE, 1
+start:  LDI     $ONE, 1
         LDI     $ARG, 5             ; argument = 5
 
         ; save return address in RXC
@@ -16,11 +21,11 @@ $ARG = R2
         LDI     R9, :return:l
         JMP     :double
 
-:return
+
         ; R2 should be 10 (5 * 2)
-        HLT     0
+return: HLT     $ARG
 
 ; subroutine: doubles the value in R2
-:double
-        ADD     $ARG, $ARG, $ARG    ; R2 = R2 + R2
+
+double: ADD     $ARG, $ARG, $ARG    ; R2 = R2 + R2
         JPF     [RXC]               ; return to address in RXC

@@ -1,4 +1,10 @@
+; reset vector
+:origin 0
+        JMP     :start
+
+; main program
 :origin 0x100
+
 ; Conditional branching: find max of two values
 ; Demonstrates JPC (conditional skip) for if/else patterns
 ; JPC skips the next instruction when the test is true,
@@ -12,16 +18,16 @@ $A = R2
 $B = R3
 $MAX = R4
 
-        LDI     R1, 1
+start:  LDI     R1, 1
         LDI     $A, 5               ; A = 5
         LDI     $B, 8               ; B = 8
 
         ; JPC skips JMP if A > B; since 5 < 8, JMP executes to :b_max
         JPC     $A, GT, $B
         JMP     :b_max
-:a_max  ADD     $MAX, $A, R0       ; MAX = A
+a_max:  ADD     $MAX, $A, R0       ; MAX = A
         JMP     :done
-:b_max  ADD     $MAX, $B, R0       ; MAX = B
-:done
+b_max:  ADD     $MAX, $B, R0       ; MAX = B
+
         ; R4 = 8
-        HLT     0
+done:   HLT     0

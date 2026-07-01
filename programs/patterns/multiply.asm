@@ -1,3 +1,8 @@
+; reset vector
+:origin 0
+        JMP     :start
+
+; main program
 :origin 0x100
 ; Nested loop multiplication
 ; Computes R4 = R2 * R3 via repeated addition
@@ -14,16 +19,16 @@ $ILIM = R3
 $ACC = R4
 $INNER = R5
 
-        LDI     $ONE, 1
+start:  LDI     $ONE, 1
         LDI     $OUTER, 4           ; multiplier = 4
         LDI     $ILIM, 3            ; multiplicand = 3
         LDI     $ACC, 0             ; result = 0
 
 ; outer loop: once per multiplier count
-:oloop  ADD     $INNER, $ILIM, R0   ; reset inner counter = ILIM
+oloop:  ADD     $INNER, $ILIM, R0   ; reset inner counter = ILIM
 
 ; inner loop: increment accumulator INNER times
-:iloop  ADD     $ACC, $ACC, $ONE    ; acc++
+iloop:  ADD     $ACC, $ACC, $ONE    ; acc++
         SUB     $INNER, $INNER, $ONE ; inner--
         JNZ     $INNER, :iloop      ; while inner != 0
 

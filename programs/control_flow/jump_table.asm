@@ -1,3 +1,8 @@
+; reset vector
+:origin 0
+        JMP     :start
+
+; main program
 :origin 0x100
 ; Jump table dispatch using JPF
 ; Loads a handler address from a table of words indexed by R2,
@@ -14,7 +19,7 @@ $IDX = R2
 $OFF = R3
 $RES = R4
 
-        LDI     $ONE, 1
+start:  LDI     $ONE, 1
         LDI     $IDX, 1             ; dispatch index = 1
 
         ; point RXB at jump table
@@ -43,14 +48,13 @@ $RES = R4
 :data DW :handler1
 :data DW :handler2
 
-:handler0
-        LDI     $RES, 10            ; result = 10
-        JMP     :done
-:handler1
-        LDI     $RES, 20            ; result = 20
-        JMP     :done
-:handler2
-        LDI     $RES, 30            ; result = 30
-:done
+handler0:   LDI     $RES, 10            ; result = 10
+            JMP     :done
+
+handler1:   LDI     $RES, 20            ; result = 20
+            JMP     :done
+
+handler2:   LDI     $RES, 30            ; result = 30
+
         ; R4 = 20 (handler1 was selected)
-        HLT     0
+done:       HLT     0
