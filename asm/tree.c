@@ -555,6 +555,21 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
     return 1;
 }
 
+static int parse_operands_v(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
+                            ASMProgramInstructionOperand **operands, uint32_t *operand_count,
+                            const char *filename, int line, int col) {
+    *operands = malloc(sizeof(ASMProgramInstructionOperand));
+    if (!*operands) return 0;
+
+    if (!parse_rel_operand(tokens, pos, &(*operands)[0])) {
+        parse_error(filename, line, col, "expected relative address");
+        free(*operands);
+        return 0;
+    }
+    *operand_count = 1;
+    return 1;
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
@@ -1001,6 +1016,13 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                        opcode == ASM_INST_NOT || opcode == ASM_INST_SHL || opcode == ASM_INST_SHR ||
                        opcode == ASM_INST_JPC) {
                 if (!parse_operands_t(tokens, &pos, opcode, &operands, &operand_count,
+                                      filename, start_line, start_col)) {
+                    free(label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+            } else if (opcode == ASM_INST_JMP) {
+                if (!parse_operands_v(tokens, &pos, opcode, &operands, &operand_count,
                                       filename, start_line, start_col)) {
                     free(label);
                     asm_free_program(program);

@@ -53,3 +53,6 @@ target_include_directories(test_instructions_s PRIVATE asm)
 
 add_executable(test_instructions_t tests/test_instructions_t.c ${ASM_SOURCES})
 target_include_directories(test_instructions_t PRIVATE asm)
+
+add_executable(test_instructions_v tests/test_instructions_v.c ${ASM_SOURCES})
+target_include_directories(test_instructions_v PRIVATE asm)
