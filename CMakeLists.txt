@@ -44,3 +44,6 @@ target_include_directories(test_operand_mem PRIVATE asm)
 
 add_executable(test_operand_test tests/test_operand_test.c ${ASM_SOURCES})
 target_include_directories(test_operand_test PRIVATE asm)
+
+add_executable(test_instructions_q tests/test_instructions_q.c ${ASM_SOURCES})
+target_include_directories(test_instructions_q PRIVATE asm)

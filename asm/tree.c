@@ -315,6 +315,56 @@ static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     return 0;
 }
 
+static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
+                            ASMProgramInstructionOperand **operands, uint32_t *operand_count,
+                            const char *filename, int line, int col) {
+    if (opcode == ASM_INST_HLT) {
+        *operands = malloc(sizeof(ASMProgramInstructionOperand));
+        if (!*operands) return 0;
+        if (!parse_value_operand(tokens, pos, *operands)) {
+            parse_error(filename, line, col, "expected value12 for HLT");
+            free(*operands);
+            return 0;
+        }
+        *operand_count = 1;
+    } else if (opcode == ASM_INST_JPF) {
+        *operands = malloc(sizeof(ASMProgramInstructionOperand));
+        if (!*operands) return 0;
+        if (!parse_mem_operand(tokens, pos, *operands)) {
+            parse_error(filename, line, col, "expected [reg16] or [reg16+rel] for JPF");
+            free(*operands);
+            return 0;
+        }
+        *operand_count = 1;
+    } else if (opcode == ASM_INST_JNZ) {
+        *operands = malloc(2 * sizeof(ASMProgramInstructionOperand));
+        if (!*operands) return 0;
+        
+        if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
+            parse_error(filename, line, col, "expected reg8 for JNZ");
+            free(*operands);
+            return 0;
+        }
+        
+        AsmToken *tok = &tokens->tokens[*pos];
+        if (tok->type != ASM_TOKEN_SYMBOL || tok->value[0] != ',') {
+            parse_error(filename, line, col, "expected ',' after reg8");
+            free(*operands);
+            return 0;
+        }
+        (*pos)++;
+        
+        if (!parse_rel_operand(tokens, pos, &(*operands)[1])) {
+            parse_error(filename, line, col, "expected relative address for JNZ");
+            free(*operands);
+            return 0;
+        }
+        *operand_count = 2;
+    }
+    
+    return 1;
+}
+
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgram *program = calloc(1, sizeof(ASMProgram));
     if (!program) {
@@ -739,9 +789,33 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             }
             pos++;
 
+            ASMProgramInstructionOperand *operands = NULL;
+            uint32_t operand_count = 0;
+
+            if (opcode == ASM_INST_HLT || opcode == ASM_INST_JPF || opcode == ASM_INST_JNZ) {
+                if (!parse_operands_q(tokens, &pos, opcode, &operands, &operand_count,
+                                      filename, start_line, start_col)) {
+                    free(label);
+                    asm_free_program(program);
+                    return NULL;
+                }
+            }
+
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
                 parse_error(filename, start_line, start_col, "expected newline after instruction");
                 free(label);
+                if (operands) {
+                    for (uint32_t i = 0; i < operand_count; i++) {
+                        if (operands[i].type == ASM_OPERAND_VARIABLE) {
+                            free(operands[i].variable);
+                        } else if (operands[i].type == ASM_OPERAND_LABEL ||
+                                   operands[i].type == ASM_OPERAND_LABEL_HIGH ||
+                                   operands[i].type == ASM_OPERAND_LABEL_LOW) {
+                            free(operands[i].label);
+                        }
+                    }
+                    free(operands);
+                }
                 asm_free_program(program);
                 return NULL;
             }
@@ -750,6 +824,18 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             if (!line) {
                 parse_error(filename, start_line, start_col, "out of memory");
                 free(label);
+                if (operands) {
+                    for (uint32_t i = 0; i < operand_count; i++) {
+                        if (operands[i].type == ASM_OPERAND_VARIABLE) {
+                            free(operands[i].variable);
+                        } else if (operands[i].type == ASM_OPERAND_LABEL ||
+                                   operands[i].type == ASM_OPERAND_LABEL_HIGH ||
+                                   operands[i].type == ASM_OPERAND_LABEL_LOW) {
+                            free(operands[i].label);
+                        }
+                    }
+                    free(operands);
+                }
                 asm_free_program(program);
                 return NULL;
             }
@@ -758,13 +844,25 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->address = current_address;
             line->instruction.label = label;
             line->instruction.op = opcode;
-            line->instruction.operands = NULL;
-            line->instruction.operand_count = 0;
+            line->instruction.operands = operands;
+            line->instruction.operand_count = operand_count;
 
             current_address += 1;
 
             if (!program_append_line(program, line)) {
                 free(label);
+                if (operands) {
+                    for (uint32_t i = 0; i < operand_count; i++) {
+                        if (operands[i].type == ASM_OPERAND_VARIABLE) {
+                            free(operands[i].variable);
+                        } else if (operands[i].type == ASM_OPERAND_LABEL ||
+                                   operands[i].type == ASM_OPERAND_LABEL_HIGH ||
+                                   operands[i].type == ASM_OPERAND_LABEL_LOW) {
+                            free(operands[i].label);
+                        }
+                    }
+                    free(operands);
+                }
                 free(line);
                 parse_error(filename, start_line, start_col, "out of memory");
                 asm_free_program(program);
