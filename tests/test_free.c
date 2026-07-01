@@ -52,7 +52,14 @@ int main(void) {
         return 1;
     }
 
-    printf("PASS: instruction with label parsed\n");
+    if (prog->lines[0]->instruction.operand_count != 1) {
+        printf("FAIL: expected 1 operand, got %u\n", prog->lines[0]->instruction.operand_count);
+        asm_free_program(prog);
+        asm_token_list_free(tokens);
+        return 1;
+    }
+
+    printf("PASS: instruction with label and operand parsed\n");
 
     asm_free_program(prog);
     asm_token_list_free(tokens);

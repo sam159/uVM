@@ -21,8 +21,9 @@ int main(void) {
     asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R1", 1, 5));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 7));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_TEST, "EQ", 1, 9));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R2", 1, 12));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 14));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 11));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R2", 1, 13));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 15));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 2, 1));
 
     ASMProgram *prog = asm_parse("test.asm", tokens);

@@ -10,7 +10,9 @@ int main(void) {
     // HLT
     AsmToken t1 = {ASM_TOKEN_OPCODE, strdup("HLT"), 3, 1, 1};
     asm_token_list_append(tokens, t1);
-    AsmToken t2 = {ASM_TOKEN_NEWLINE, strdup(""), 0, 1, 4};
+    AsmToken t_operand = {ASM_TOKEN_NUMBER, strdup("0"), 1, 1, 4};
+    asm_token_list_append(tokens, t_operand);
+    AsmToken t2 = {ASM_TOKEN_NEWLINE, strdup(""), 0, 1, 5};
     asm_token_list_append(tokens, t2);
 
     // EOF
@@ -45,8 +47,8 @@ int main(void) {
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operand_count != 0) {
-        printf("FAIL: expected 0 operands, got %u\n",
+    if (prog->lines[0]->instruction.operand_count != 1) {
+        printf("FAIL: expected 1 operand, got %u\n",
                prog->lines[0]->instruction.operand_count);
         asm_free_program(prog);
         asm_token_list_free(tokens);
