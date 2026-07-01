@@ -1243,7 +1243,7 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 val = inst->operands[1].value8;
             }
             if (val > 255) {
-                fprintf(stderr, "%s: LDI operand %u exceeds 8 bits\n", "asm_emit", val);
+                fprintf(stderr, "error: LDI operand %u exceeds 8 bits\n", val);
                 return false;
             }
             raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | (uint8_t)val;
@@ -1418,12 +1418,13 @@ bool asm_emit(ASMProgram *program, FILE *f_out) {
             case ASM_PROGRAM_LINE_ORIGIN: {
                 long current = ftell(f_out);
                 if (current < 0) return false;
-                if ((uint16_t)current > line->address) {
+                if (current > (long)line->address) {
                     fprintf(stderr, "error: cannot set origin backward from %ld to %u\n",
                             current, line->address);
                     return false;
                 }
-                while (ftell(f_out) < line->address) {
+                size_t pad = line->address - (uint16_t)current;
+                for (size_t j = 0; j < pad; j++) {
                     fputc(0, f_out);
                     if (ferror(f_out)) return false;
                 }
