@@ -79,7 +79,9 @@ bool asm_compile(const char *input, const char *output) {
 
     ASMProgram *program = asm_parse(input, tokens);
 
-    // TODO: parse program
+    if (program && !asm_resolve(program)) {
+        success = false;
+    }
 
     asm_free_program(program);
 

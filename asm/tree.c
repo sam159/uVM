@@ -951,7 +951,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->instruction.operands = operands;
             line->instruction.operand_count = operand_count;
 
-            current_address += 1;
+            current_address += 2;
 
             if (!program_append_line(program, line)) {
                 parse_error(filename, start_line, start_col, "out of memory");
@@ -985,12 +985,207 @@ fail:
     return NULL;
 }
 
+static int symbol_table_add(ASMSymbolTable *table, const char *name, uint16_t address) {
+    for (uint32_t i = 0; i < table->count; i++) {
+        if (strcmp(table->entries[i].name, name) == 0) {
+            return 0;
+        }
+    }
+    if (table->count >= table->capacity) {
+        uint32_t new_cap = table->capacity ? table->capacity * 2 : 16;
+        ASMSymbolEntry *tmp = realloc(table->entries, new_cap * sizeof(ASMSymbolEntry));
+        if (!tmp) return -1;
+        table->entries = tmp;
+        table->capacity = new_cap;
+    }
+    table->entries[table->count].name = strdup(name);
+    if (!table->entries[table->count].name) return -1;
+    table->entries[table->count].address = address;
+    table->count++;
+    return 1;
+}
+
+typedef struct {
+    char *name;
+    int64_t value;
+} AliasEntry;
+
+bool asm_resolve(ASMProgram *program) {
+    if (!program) return false;
+
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        ASMProgramLine *line = program->lines[i];
+        char *label = NULL;
+        if (line->type == ASM_PROGRAM_LINE_INSTRUCTION && line->instruction.label) {
+            label = line->instruction.label;
+        } else if (line->type == ASM_PROGRAM_LINE_DATA && line->data.label) {
+            label = line->data.label;
+        }
+        if (label) {
+            const char *name = label;
+            if (name[0] == ':') name++;
+            int result = symbol_table_add(&program->symbol_table, name, line->address);
+            if (result == 0) {
+                parse_error(program->filename, line->line_number, 0, "duplicate label");
+                return false;
+            } else if (result < 0) {
+                parse_error(program->filename, line->line_number, 0, "out of memory");
+                return false;
+            }
+        }
+    }
+
+    AliasEntry *aliases = NULL;
+    uint32_t alias_count = 0;
+    uint32_t alias_capacity = 0;
+
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        ASMProgramLine *line = program->lines[i];
+        if (line->type == ASM_PROGRAM_LINE_ALIAS) {
+            if (alias_count >= alias_capacity) {
+                uint32_t new_cap = alias_capacity ? alias_capacity * 2 : 16;
+                AliasEntry *tmp = realloc(aliases, new_cap * sizeof(AliasEntry));
+                if (!tmp) {
+                    parse_error(program->filename, line->line_number, 0, "out of memory");
+                    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                    free(aliases);
+                    return false;
+                }
+                aliases = tmp;
+                alias_capacity = new_cap;
+            }
+            aliases[alias_count].name = strdup(line->alias.variable);
+            if (!aliases[alias_count].name) {
+                parse_error(program->filename, line->line_number, 0, "out of memory");
+                for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                free(aliases);
+                return false;
+            }
+            aliases[alias_count].value = line->alias.value;
+            alias_count++;
+        }
+    }
+
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        ASMProgramLine *line = program->lines[i];
+        if (line->type != ASM_PROGRAM_LINE_INSTRUCTION) continue;
+
+        for (uint32_t j = 0; j < line->instruction.operand_count; j++) {
+            ASMProgramInstructionOperand *op = &line->instruction.operands[j];
+
+            if (op->type == ASM_OPERAND_VARIABLE) {
+                int64_t value = 0;
+                int found = 0;
+                for (uint32_t k = 0; k < alias_count; k++) {
+                    if (strcmp(op->variable, aliases[k].name) == 0) {
+                        value = aliases[k].value;
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    parse_error(program->filename, line->line_number, 0, "undefined variable");
+                    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                    free(aliases);
+                    return false;
+                }
+                free(op->variable);
+                op->variable = NULL;
+                if (value >= 0 && value <= 15) {
+                    op->type = ASM_OPERAND_REG8;
+                    op->reg8 = (uint8_t)value;
+                } else {
+                    op->type = ASM_OPERAND_VALUE16;
+                    op->value16 = (uint16_t)value;
+                }
+            } else if (op->type == ASM_OPERAND_LABEL) {
+                uint16_t target_addr = 0;
+                int found = 0;
+                for (uint32_t k = 0; k < program->symbol_table.count; k++) {
+                    if (strcmp(op->label, program->symbol_table.entries[k].name) == 0) {
+                        target_addr = program->symbol_table.entries[k].address;
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    parse_error(program->filename, line->line_number, 0, "undefined label");
+                    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                    free(aliases);
+                    return false;
+                }
+                free(op->label);
+                op->label = NULL;
+                if (line->instruction.op == ASM_INST_JMP ||
+                    (line->instruction.op == ASM_INST_JNZ && j == 1)) {
+                    int16_t rel = (int16_t)(target_addr - line->address - 2);
+                    op->type = ASM_OPERAND_REL;
+                    op->rel = rel;
+                } else {
+                    op->type = ASM_OPERAND_VALUE16;
+                    op->value16 = target_addr;
+                }
+            } else if (op->type == ASM_OPERAND_LABEL_HIGH) {
+                uint16_t addr = 0;
+                int found = 0;
+                for (uint32_t k = 0; k < program->symbol_table.count; k++) {
+                    if (strcmp(op->label, program->symbol_table.entries[k].name) == 0) {
+                        addr = program->symbol_table.entries[k].address;
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    parse_error(program->filename, line->line_number, 0, "undefined label");
+                    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                    free(aliases);
+                    return false;
+                }
+                free(op->label);
+                op->label = NULL;
+                op->type = ASM_OPERAND_VALUE8;
+                op->value8 = (uint8_t)((addr >> 8) & 0xFF);
+            } else if (op->type == ASM_OPERAND_LABEL_LOW) {
+                uint16_t addr = 0;
+                int found = 0;
+                for (uint32_t k = 0; k < program->symbol_table.count; k++) {
+                    if (strcmp(op->label, program->symbol_table.entries[k].name) == 0) {
+                        addr = program->symbol_table.entries[k].address;
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    parse_error(program->filename, line->line_number, 0, "undefined label");
+                    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+                    free(aliases);
+                    return false;
+                }
+                free(op->label);
+                op->label = NULL;
+                op->type = ASM_OPERAND_VALUE8;
+                op->value8 = (uint8_t)(addr & 0xFF);
+            }
+        }
+    }
+
+    for (uint32_t j = 0; j < alias_count; j++) free(aliases[j].name);
+    free(aliases);
+
+    return true;
+}
+
 void asm_free_program(ASMProgram *program) {
     if (!program) {
         return;
     }
 
     free(program->filename);
+
+    for (uint32_t i = 0; i < program->symbol_table.count; i++) {
+        free(program->symbol_table.entries[i].name);
+    }
+    free(program->symbol_table.entries);
 
     if (program->lines) {
         for (uint32_t i = 0; i < program->line_count; i++) {

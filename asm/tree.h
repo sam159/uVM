@@ -7,11 +7,23 @@
 typedef struct ASMProgram ASMProgram;
 typedef struct ASMProgramLine ASMProgramLine;
 
+typedef struct {
+    char *name;
+    uint16_t address;
+} ASMSymbolEntry;
+
+typedef struct {
+    ASMSymbolEntry *entries;
+    uint32_t count;
+    uint32_t capacity;
+} ASMSymbolTable;
+
 /* ASMProgram */
 struct ASMProgram {
     char *filename;
     ASMProgramLine **lines;
     uint32_t line_count;
+    ASMSymbolTable symbol_table;
 };
 
 /* ASMProgramLineType */
@@ -154,5 +166,7 @@ struct ASMProgramLine {
 void asm_free_program(ASMProgram *program);
 
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens);
+
+bool asm_resolve(ASMProgram *program);
 
 #endif //UVM_ASM_TREE_H
