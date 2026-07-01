@@ -260,6 +260,41 @@ static int parse_mem_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstru
     return 0;
 }
 
+static int parse_test_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    bool negated = false;
+    if (tok->type == ASM_TOKEN_SYMBOL && tok->value[0] == '~') {
+        negated = true;
+        (*pos)++;
+        tok = &tokens->tokens[*pos];
+    }
+
+    if (tok->type != ASM_TOKEN_TEST) {
+        return 0;
+    }
+
+    op->type = ASM_OPERAND_TEST;
+    op->test.negated = negated;
+
+    if (strcmp(tok->value, "EQ") == 0) {
+        op->test.type = ASM_TEST_EQ;
+    } else if (strcmp(tok->value, "LT") == 0) {
+        op->test.type = ASM_TEST_LT;
+    } else if (strcmp(tok->value, "LTE") == 0) {
+        op->test.type = ASM_TEST_LTE;
+    } else if (strcmp(tok->value, "GT") == 0) {
+        op->test.type = ASM_TEST_GT;
+    } else if (strcmp(tok->value, "GTE") == 0) {
+        op->test.type = ASM_TEST_GTE;
+    } else {
+        return 0;
+    }
+
+    (*pos)++;
+    return 1;
+}
+
 static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
     if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }
