@@ -90,17 +90,6 @@ bool asm_compile(const char *input, const char *output) {
     }
 
     asm_free_program(program);
-
-    if (success) {
-        // DEBUG: print tokens to stderr
-        for (int i = 0; i < tokens->count; i++) {
-            fprintf(stderr, "  L%d C%d: [%-12s] \"%s\"\n",
-                    tokens->tokens[i].line, tokens->tokens[i].col,
-                    asm_token_type_name(tokens->tokens[i].type),
-                    tokens->tokens[i].value);
-        }
-    }
-
     asm_token_list_free(tokens);
 
     fclose(f_in);

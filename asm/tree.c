@@ -412,8 +412,8 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         *operands = malloc(2 * sizeof(ASMProgramInstructionOperand));
         if (!*operands) return 0;
 
-        if (!parse_reg16_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg16 for LDA");
+        if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
+            parse_error(filename, line, col, "expected reg8 for LDA");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
@@ -446,8 +446,8 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
             return 0;
         }
 
-        if (!parse_reg16_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected reg16");
+        if (!parse_reg8_operand(tokens, pos, &(*operands)[1])) {
+            parse_error(filename, line, col, "expected reg8");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
