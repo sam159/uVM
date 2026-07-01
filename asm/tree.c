@@ -58,6 +58,9 @@ static int parse_reg8_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstr
     AsmToken *tok = &tokens->tokens[*pos];
 
     if (tok->type == ASM_TOKEN_REGISTER) {
+        if (tok->value[0] == 'R' && tok->value[1] == 'X') {
+            return 0;
+        }
         int reg_id = parse_register_id(tok->value);
         if (reg_id < 0 || reg_id > 15) {
             return 0;
