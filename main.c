@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "vm.h"
 #include "asm.h"

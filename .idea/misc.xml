@@ -4,6 +4,12 @@
     <option name="pythonIntegrationState" value="YES" />
   </component>
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
+  <component name="CidrRootsConfiguration">
+    <excludeRoots>
+      <file path="$PROJECT_DIR$/.superpowers" />
+      <file path="$PROJECT_DIR$/.worktrees" />
+    </excludeRoots>
+  </component>
   <component name="JavaScriptSettings">
     <option name="languageLevel" value="ES6" />
   </component>

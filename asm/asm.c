@@ -37,14 +37,6 @@ bool asm_compile(const char *input, const char *output) {
     fprintf(stderr, "Assembling '%s' -> '%s'\n", input, output);
 
     bool success = true;
-
-    ASMProgram *program = calloc(1, sizeof(ASMProgram));
-    if (!program) {
-        fclose(f_in);
-        free(outputTemp);
-        fclose(f_out);
-        return false;
-    }
     
     char *line = NULL;
     size_t len = 0;
@@ -54,7 +46,6 @@ bool asm_compile(const char *input, const char *output) {
         fclose(f_in);
         free(outputTemp);
         fclose(f_out);
-        free(program);
         return false;
     }
 
@@ -83,20 +74,22 @@ bool asm_compile(const char *input, const char *output) {
     }
     free(line);
 
-    // TODO: parse program
+    AsmToken eof = {ASM_TOKEN_EOF, strdup(""), 0, lineNum + 1, 1};
+    asm_token_list_append(tokens, eof);
 
-    asm_free_program(program);
+    ASMProgram *program = asm_parse(input, tokens);
 
-    if (success) {
-        // DEBUG: print tokens to stderr
-        for (int i = 0; i < tokens->count; i++) {
-            fprintf(stderr, "  L%d C%d: [%-12s] \"%s\"\n",
-                    tokens->tokens[i].line, tokens->tokens[i].col,
-                    asm_token_type_name(tokens->tokens[i].type),
-                    tokens->tokens[i].value);
+    if (program && !asm_resolve(program)) {
+        success = false;
+    }
+
+    if (success && program) {
+        if (!asm_emit(program, f_out)) {
+            success = false;
         }
     }
 
+    asm_free_program(program);
     asm_token_list_free(tokens);
 
     fclose(f_in);

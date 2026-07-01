@@ -1,18 +1,30 @@
 #ifndef UVM_ASM_TREE_H
 #define UVM_ASM_TREE_H
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
 #include "token.h"
 
 typedef struct ASMProgram ASMProgram;
 typedef struct ASMProgramLine ASMProgramLine;
+
+typedef struct {
+    char *name;
+    uint16_t address;
+} ASMSymbolEntry;
+
+typedef struct {
+    ASMSymbolEntry *entries;
+    uint32_t count;
+    uint32_t capacity;
+} ASMSymbolTable;
 
 /* ASMProgram */
 struct ASMProgram {
     char *filename;
     ASMProgramLine **lines;
     uint32_t line_count;
+    ASMSymbolTable symbol_table;
 };
 
 /* ASMProgramLineType */
@@ -40,6 +52,7 @@ typedef enum {
 
 /* ASMProgramData */
 typedef struct {
+    char *label;
     ASMProgramDataType type;
     uint8_t *data;
     uint32_t data_length;
@@ -65,10 +78,10 @@ typedef enum {
     ASM_INST_AND = 9,
     ASM_INST_SHL = 0xa,
     ASM_INST_SHR = 0xb,
-    ASM_INST_SYS = 0xc,
-    ASM_INST_JMP = 0xd,
-    ASM_INST_JEQ = 0xe,
-    ASM_INST_JLT = 0xf,
+    ASM_INST_JMP = 0xc,
+    ASM_INST_JPF = 0xd,
+    ASM_INST_JNZ = 0xe,
+    ASM_INST_JPC = 0xf,
 } ASMProgramInstructionType;
 
 /* ASMProgramInstructionOperandTestType */
@@ -154,5 +167,9 @@ struct ASMProgramLine {
 void asm_free_program(ASMProgram *program);
 
 ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens);
+
+bool asm_resolve(ASMProgram *program);
+
+bool asm_emit(ASMProgram *program, FILE *f_out);
 
 #endif //UVM_ASM_TREE_H
