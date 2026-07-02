@@ -113,12 +113,12 @@ static void host_error(uint8_t err) {
 }
 
 static void vm_print_state(VM *vm) {
-    printf("PC: %04X  carry: %d  halted: %d\n", vm->PC, vm->carry, vm->halted);
+    printf("PC: %04X  carry: %d  halted: %d haltcode: %04X (%d)\n", vm->PC, vm->carry, vm->halted, vm->haltCode, vm->haltCode);
 
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             uint16_t addr = i+j*4;
-            printf("R%X: %02X (%03d) ", i, vm->R[addr], vm->R[addr]);
+            printf("R%X: %02X (%03d) ", addr, vm->R[addr], vm->R[addr]);
         }
         printf("\n");
     }

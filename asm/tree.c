@@ -890,9 +890,6 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->data.value_label = data_label_ref;
 
             current_address += data_len;
-            if (current_address % 2 != 0) {
-                current_address++;  // account for padding byte
-            }
 
             if (!program_append_line(program, line)) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
@@ -905,7 +902,6 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
         if (tok->type == ASM_TOKEN_LABEL || tok->type == ASM_TOKEN_OPCODE) {
             int start_line = tok->line;
-            int start_col = tok->col;
 
             if (tok->type == ASM_TOKEN_LABEL) {
                 label = malloc(tok->value_len + 1);
@@ -957,6 +953,29 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "expected newline");
                 goto fail;
+            }
+
+            if (current_address % 2 != 0) {
+                // if current address is odd, inject empty DB data to align next instruction
+                line = calloc(1, sizeof(ASMProgramLine));
+                if (!line) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
+                line->type = ASM_PROGRAM_LINE_DATA;
+                line->line_number = start_line;
+                line->address = current_address;
+                line->data.label = NULL;
+                line->data.type = ASM_DATA_DB;
+                data_buf = malloc(1);
+                if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
+                data_buf[0] = 0;
+                line->data.data = data_buf;
+                line->data.data_length = 1;
+                line->data.value_label = NULL;
+                current_address++;
+                if (!program_append_line(program, line)) {
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
+                    goto fail;
+                }
+                line = NULL;
             }
 
             line = calloc(1, sizeof(ASMProgramLine));
@@ -1029,6 +1048,7 @@ typedef struct {
     int64_t value;
 } AliasEntry;
 
+// resolve aliases and symbols
 bool asm_resolve(ASMProgram *program) {
     if (!program) return false;
 
@@ -1047,7 +1067,8 @@ bool asm_resolve(ASMProgram *program) {
             if (result == 0) {
                 parse_error(program->filename, line->line_number, 0, "duplicate label");
                 return false;
-            } else if (result < 0) {
+            }
+            if (result < 0) {
                 parse_error(program->filename, line->line_number, 0, "out of memory");
                 return false;
             }
@@ -1279,14 +1300,13 @@ static int test_bits_from_type(ASMProgramInstructionOperandTestType type) {
     return 0;
 }
 
-static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
+static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
     const ASMProgramInstruction *inst = &line->instruction;
-    uint8_t op = (uint8_t)inst->op;
-    uint16_t raw;
+    const uint8_t op = (uint8_t)inst->op;
 
     switch (inst->op) {
         case ASM_INST_LDI: {
-            uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rd = inst->operands[0].reg8;
             uint16_t val;
             if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
                 val = inst->operands[1].value16;
@@ -1297,7 +1317,7 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 fprintf(stderr, "error: LDI operand %u exceeds 8 bits\n", val);
                 return false;
             }
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | (uint8_t)val;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint8_t)val;
             break;
         }
         case ASM_INST_JPF: {
@@ -1308,28 +1328,28 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 imm = 0;
             } else if (inst->operands[0].type == ASM_OPERAND_REG16_REL) {
                 rd = inst->operands[0].reg16_rel.register_id;
-                imm = (uint8_t)(int8_t)inst->operands[0].reg16_rel.offset;
+                imm = (uint8_t)inst->operands[0].reg16_rel.offset;
             } else {
                 fprintf(stderr, "error: JPF expected REG16 or REG16_REL operand\n");
                 return false;
             }
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | imm;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | imm;
             break;
         }
         case ASM_INST_JNZ: {
-            uint8_t rd = inst->operands[0].reg8;
-            int16_t rel = inst->operands[1].rel;
+            const uint8_t rd = inst->operands[0].reg8;
+            const int16_t rel = inst->operands[1].rel;
             if (rel & 1) {
                 fprintf(stderr, "error: JNZ odd relative offset %d\n", rel);
                 return false;
             }
-            int16_t words = rel / 2;
+            const int16_t words = rel / 2;
             if (words < -128 || words > 127) {
                 fprintf(stderr, "error: JNZ relative offset %d out of range\n", rel);
                 return false;
             }
-            uint8_t imm = (uint8_t)(int8_t)words;
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | imm;
+            const uint8_t imm = (uint8_t)(int8_t)words;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | imm;
             break;
         }
 
@@ -1338,15 +1358,15 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
         case ASM_INST_SUB:
         case ASM_INST_SBC:
         case ASM_INST_AND: {
-            uint8_t rd = inst->operands[0].reg8;
-            uint8_t rx = inst->operands[1].reg8;
-            uint8_t ry = inst->operands[2].reg8;
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | ry;
+            const uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rx = inst->operands[1].reg8;
+            const uint8_t ry = inst->operands[2].reg8;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | ry;
             break;
         }
 
         case ASM_INST_LDA: {
-            uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rd = inst->operands[0].reg8;
             uint8_t rx, imm;
             if (inst->operands[1].type == ASM_OPERAND_REG16) {
                 rx = inst->operands[1].reg8;
@@ -1358,11 +1378,11 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 fprintf(stderr, "error: LDA expected REG16 or REG16_REL operand\n");
                 return false;
             }
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | imm;
             break;
         }
         case ASM_INST_STA: {
-            uint8_t rx = inst->operands[1].reg8;
+            const uint8_t rx = inst->operands[1].reg8;
             uint8_t rd, imm;
             if (inst->operands[0].type == ASM_OPERAND_REG16) {
                 rd = inst->operands[0].reg8;
@@ -1374,17 +1394,17 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 fprintf(stderr, "error: STA expected REG16 or REG16_REL operand\n");
                 return false;
             }
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | imm;
             break;
         }
         case ASM_INST_NOT: {
-            uint8_t rd = inst->operands[0].reg8;
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rd << 4) | 0;
+            const uint8_t rd = inst->operands[0].reg8;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rd << 4 | 0;
             break;
         }
         case ASM_INST_SHL:
         case ASM_INST_SHR: {
-            uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rd = inst->operands[0].reg8;
             uint16_t val;
             if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
                 val = inst->operands[1].value16;
@@ -1395,16 +1415,16 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 fprintf(stderr, "error: shift amount %u exceeds 4 bits\n", val);
                 return false;
             }
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rd << 4) | (uint8_t)val;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rd << 4 | (uint8_t)val;
             break;
         }
         case ASM_INST_JPC: {
-            uint8_t rd = inst->operands[0].reg8;
-            uint8_t rx = inst->operands[2].reg8;
+            const uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rx = inst->operands[2].reg8;
             int test_bits = test_bits_from_type(inst->operands[1].test.type);
             if (inst->operands[1].test.negated) test_bits |= 0x8;
-            uint8_t imm = (uint8_t)test_bits;
-            raw = ((uint16_t)op << 12) | ((uint16_t)rd << 8) | ((uint16_t)rx << 4) | imm;
+            const uint8_t imm = (uint8_t)test_bits;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | imm;
             break;
         }
 
@@ -1419,22 +1439,22 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
                 fprintf(stderr, "error: HLT operand %u exceeds 12 bits\n", val);
                 return false;
             }
-            raw = ((uint16_t)op << 12) | (val & 0xFFF);
+            *encoded = (uint16_t)op << 12 | val & 0xFFF;
             break;
         }
         case ASM_INST_JMP: {
-            int16_t rel = inst->operands[0].rel;
+            const int16_t rel = inst->operands[0].rel;
             if (rel & 1) {
                 fprintf(stderr, "error: JMP odd relative offset %d\n", rel);
                 return false;
             }
-            int16_t words = rel / 2;
+            const int16_t words = rel / 2;
             if (words < -2048 || words > 2047) {
                 fprintf(stderr, "error: JMP relative offset %d out of range\n", rel);
                 return false;
             }
-            uint16_t imm12 = (uint16_t)(int16_t)words & 0xFFF;
-            raw = ((uint16_t)op << 12) | imm12;
+            const uint16_t imm12 = (uint16_t)(int16_t)words & 0xFFF;
+            *encoded = (uint16_t)op << 12 | imm12;
             break;
         }
 
@@ -1443,9 +1463,6 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
             return false;
     }
 
-    fputc((raw >> 8) & 0xFF, f);
-    fputc(raw & 0xFF, f);
-    if (ferror(f)) return false;
     return true;
 }
 
@@ -1473,41 +1490,41 @@ bool asm_emit(ASMProgram *program, FILE *f_out) {
 
     for (uint32_t i = 0; i < program->line_count; i++) {
         const ASMProgramLine *line = program->lines[i];
+        uint16_t encoded;
+
+        const long currentPos = ftell(f_out);
+        const size_t pad = line->address - earliest_address - (uint16_t)currentPos;
+        for (size_t j = 0; j < pad; j++) {
+            fputc(0, f_out);
+            if (ferror(f_out)) return false;
+        }
 
         switch (line->type) {
             case ASM_PROGRAM_LINE_INSTRUCTION:
-                if (!emit_instruction(f_out, line)) return false;
+                if (emit_instruction(&encoded, line)) {
+                    // fwrite on the encoded value would write the bytes in little endian, we need to write them in big endian
+                    fputc((uint8_t)(encoded >> 8), f_out);
+                    fputc((uint8_t)(encoded & 0xFF), f_out);
+                } else {
+                    return false;
+                }
                 break;
 
             case ASM_PROGRAM_LINE_DATA:
                 if (fwrite(line->data.data, 1, line->data.data_length, f_out) != line->data.data_length) {
                     return false;
                 }
-                {
-                    long pos = ftell(f_out);
-                    if (pos < 0) return false;
-                    if (pos % 2 != 0) {
-                        fputc(0, f_out);
-                        if (ferror(f_out)) return false;
-                    }
-                }
                 break;
 
             case ASM_PROGRAM_LINE_ORIGIN: {
-                long current = ftell(f_out);
-                if (current < 0) return false;
-                if (current > (long)line->address) {
+                if (currentPos < 0) return false;
+                if (currentPos > (long)line->address) {
                     fprintf(
                         stderr,
                         "error %s:%d:%d: origins must be sequential. attempt to set origin from %ld to %u\n",
-                        program->filename, line->line_number, 0, current, line->address
+                        program->filename, line->line_number, 0, currentPos, line->address
                     );
                     return false;
-                }
-                size_t pad = line->address - earliest_address - (uint16_t)current;
-                for (size_t j = 0; j < pad; j++) {
-                    fputc(0, f_out);
-                    if (ferror(f_out)) return false;
                 }
                 break;
             }

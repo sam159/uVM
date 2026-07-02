@@ -140,10 +140,11 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 }
             }
             if (*p == quote) {
-                p++;
                 col++;
             }
             asm_token_list_append(list, new_token(ASM_TOKEN_STRING, sstart, (int)(p - sstart), line_num, start_col));
+            // increment past quote
+            p++;
             at_line_start = false;
             continue;
         }
@@ -250,7 +251,7 @@ AsmTokenList *asm_tokenize_line(const char *line, int line_num) {
                 col++;
             }
             int len = (int)(p - idstart);
-            char *ident = (char *)malloc((size_t)len + 1);
+            char *ident = malloc((size_t)len + 1);
             if (!ident) {
                 asm_token_list_free(list);
                 return NULL;

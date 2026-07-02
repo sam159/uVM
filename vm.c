@@ -181,8 +181,7 @@ bool vm_step(VM *vm) {
             break;
         case OP_LDI:
             vm_decode_Q(&inst, raw);
-            rd = inst.imm;
-            vm_put_r(vm, inst.rd, rd);
+            vm_put_r(vm, inst.rd, inst.imm);
             break;
         case OP_ADD:
             vm_decode_S(&inst, raw);
