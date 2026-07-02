@@ -1452,8 +1452,27 @@ static bool emit_instruction(FILE *f, const ASMProgramLine *line) {
 bool asm_emit(ASMProgram *program, FILE *f_out) {
     if (!program || !f_out) return false;
 
+    uint16_t earliest_address = UINT16_MAX;
     for (uint32_t i = 0; i < program->line_count; i++) {
-        ASMProgramLine *line = program->lines[i];
+        const ASMProgramLine *line = program->lines[i];
+
+        if ((line->type == ASM_PROGRAM_LINE_INSTRUCTION || line->type == ASM_PROGRAM_LINE_DATA)
+            && earliest_address == UINT16_MAX) {
+            // first line is an instruction
+            earliest_address = 0;
+            break;
+        }
+        if (line->type == ASM_PROGRAM_LINE_ORIGIN) {
+            if (line->address < earliest_address) {
+                earliest_address = line->address;
+            }
+            // origins can only be sequential, don't need to consider any others
+            break;
+        }
+    }
+
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        const ASMProgramLine *line = program->lines[i];
 
         switch (line->type) {
             case ASM_PROGRAM_LINE_INSTRUCTION:
@@ -1478,11 +1497,14 @@ bool asm_emit(ASMProgram *program, FILE *f_out) {
                 long current = ftell(f_out);
                 if (current < 0) return false;
                 if (current > (long)line->address) {
-                    fprintf(stderr, "error: cannot set origin backward from %ld to %u\n",
-                            current, line->address);
+                    fprintf(
+                        stderr,
+                        "error %s:%d:%d: origins must be sequential. attempt to set origin from %ld to %u\n",
+                        program->filename, line->line_number, 0, current, line->address
+                    );
                     return false;
                 }
-                size_t pad = line->address - (uint16_t)current;
+                size_t pad = line->address - earliest_address - (uint16_t)current;
                 for (size_t j = 0; j < pad; j++) {
                     fputc(0, f_out);
                     if (ferror(f_out)) return false;

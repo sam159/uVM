@@ -9,13 +9,16 @@ echo "Testing example programs..."
 PASS=0
 FAIL=0
 
+TMPOUTPUT=`mktemp --suffix=.bin`
+trap "rm $TMPOUTPUT" exit
+
 for asm_file in programs/*.asm programs/*/*.asm; do
     if [ -f "$asm_file" ]; then
         echo -n "  Testing: $asm_file ... "
 
         # Run assembler and capture exit code
         set +e
-        output=$(./cmake-build-debug/uVM -c "$asm_file" -o /tmp/test_output.bin 2>&1)
+        output=$(./cmake-build-debug/uVM -c "$asm_file" -o $TMPOUTPUT 2>&1)
         exit_code=$?
         set -e
 
@@ -29,7 +32,7 @@ for asm_file in programs/*.asm programs/*/*.asm; do
         else
             # Execute the assembled binary and validate output
             set +e
-            run_output=$(./cmake-build-debug/uVM /tmp/test_output.bin 2>&1)
+            run_output=$(./cmake-build-debug/uVM $TMPOUTPUT 2>&1)
             run_exit=$?
             set -e
 

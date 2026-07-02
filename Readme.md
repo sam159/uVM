@@ -140,6 +140,8 @@ Errors are reported via the `error` hook and halt the VM:
 
 ## TODO
 
-ASM
-- Check that instructions are word aligned
-- Don't emit empty memory up to the first origin/address in use. Output memory map after compile.
+VM
+- Improve options parsing
+- Add device support
+  - Console
+  - File
