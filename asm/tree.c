@@ -783,7 +783,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 pos++;
             } else if (dtype == ASM_DATA_DW) {
                 if (pos >= tokens->count) {
-                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number or label for DW");
+                    parse_error(filename, start_line, start_col, "expected number or label for DW");
                     goto fail;
                 }
                 if (tokens->tokens[pos].type == ASM_TOKEN_NUMBER) {
