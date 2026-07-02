@@ -135,7 +135,7 @@ Includes the specified data at the current location of the binary output. This i
 
 Label is optional and must be prefixed with a hash. Referenced by `:label`.
 
-the type may be one of
+The type may be one of
 - `DB` - single byte
     - absolute value
 - `DW` - word / two bytes
@@ -149,6 +149,8 @@ the type may be one of
 - `STL` - length prefixed string
     - value as above
     - the length of the string as a word is included before the string for loading into an extended register.
+
+Odd-sized data that precedes an instruction is padded to keep it word-aligned.
 
 ```asm
 ; examples
