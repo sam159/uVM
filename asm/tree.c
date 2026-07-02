@@ -890,6 +890,9 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->data.value_label = data_label_ref;
 
             current_address += data_len;
+            if (current_address % 2 != 0) {
+                current_address++;  // account for padding byte
+            }
 
             if (!program_append_line(program, line)) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
