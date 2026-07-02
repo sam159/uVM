@@ -68,3 +68,6 @@ target_include_directories(test_emit PRIVATE asm)
 
 add_executable(test_dw_label tests/test_dw_label.c ${ASM_SOURCES})
 target_include_directories(test_dw_label PRIVATE asm)
+
+add_executable(test_dw_resolve tests/test_dw_resolve.c ${ASM_SOURCES})
+target_include_directories(test_dw_resolve PRIVATE asm)

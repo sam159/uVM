@@ -1051,6 +1051,37 @@ bool asm_resolve(ASMProgram *program) {
         }
     }
 
+    for (uint32_t i = 0; i < program->line_count; i++) {
+        ASMProgramLine *line = program->lines[i];
+        if (line->type == ASM_PROGRAM_LINE_DATA && line->data.value_label) {
+            const char *name = line->data.value_label;
+            if (name[0] == ':') name++;
+            int found = 0;
+            uint16_t addr = 0;
+            for (uint32_t k = 0; k < program->symbol_table.count; k++) {
+                if (strcmp(name, program->symbol_table.entries[k].name) == 0) {
+                    addr = program->symbol_table.entries[k].address;
+                    found = 1;
+                    break;
+                }
+            }
+            if (!found) {
+                parse_error(program->filename, line->line_number, 0, "undefined label in DW");
+                return false;
+            }
+            line->data.data = malloc(2);
+            if (!line->data.data) {
+                parse_error(program->filename, line->line_number, 0, "out of memory");
+                return false;
+            }
+            line->data.data[0] = (uint8_t)((addr >> 8) & 0xFF);
+            line->data.data[1] = (uint8_t)(addr & 0xFF);
+            line->data.data_length = 2;
+            free(line->data.value_label);
+            line->data.value_label = NULL;
+        }
+    }
+
     AliasEntry *aliases = NULL;
     uint32_t alias_count = 0;
     uint32_t alias_capacity = 0;
