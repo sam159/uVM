@@ -1461,6 +1461,14 @@ bool asm_emit(ASMProgram *program, FILE *f_out) {
                 if (fwrite(line->data.data, 1, line->data.data_length, f_out) != line->data.data_length) {
                     return false;
                 }
+                {
+                    long pos = ftell(f_out);
+                    if (pos < 0) return false;
+                    if (pos % 2 != 0) {
+                        fputc(0, f_out);
+                        if (ferror(f_out)) return false;
+                    }
+                }
                 break;
 
             case ASM_PROGRAM_LINE_ORIGIN: {
