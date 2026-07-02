@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "asm.h"
+#include "../utils.h"
 
 #include <errno.h>
 
@@ -17,20 +18,27 @@ bool asm_compile(const char *input, const char *output) {
         return false;
     }
 
-    char * outputTemp = malloc(strlen(output) + 5);
+    const char *tmp_dir = get_temp_dir();
+    char *outputTemp = malloc(strlen(tmp_dir) + strlen("/uvm_asm_XXXXXX") + 1);
     if (!outputTemp) {
         fclose(f_in);
         return false;
     }
-    outputTemp[0] = '\0';
-    strcat(outputTemp, output);
-    strcat(outputTemp, ".tmp");
-
-    FILE *f_out = fopen(outputTemp, "wb");
-    if (!f_out) {
+    sprintf(outputTemp, "%s/uvm_asm_XXXXXX", tmp_dir);
+    int fd = mkstemp(outputTemp);
+    if (fd == -1) {
         free(outputTemp);
-        fprintf(stderr, "Error: cannot open '%s' for writing\n", output);
         fclose(f_in);
+        fprintf(stderr, "Error: cannot create temp file: %s\n", strerror(errno));
+        return false;
+    }
+    FILE *f_out = fdopen(fd, "wb");
+    if (!f_out) {
+        close(fd);
+        unlink(outputTemp);
+        free(outputTemp);
+        fclose(f_in);
+        fprintf(stderr, "Error: cannot open temp file for writing\n");
         return false;
     }
 
@@ -96,18 +104,18 @@ bool asm_compile(const char *input, const char *output) {
     fclose(f_out);
 
     if (success) {
-        // copy outputTemp to output
-        if (rename(outputTemp, output) == -1) {
+        if (!copy_file(outputTemp, output)) {
+            unlink(output);
             fprintf(
                 stderr,
-                "Error: failed to rename '%s' to '%s: %s'\n",
+                "Error: failed to copy '%s' to '%s': %s\n",
                 outputTemp,
                 output,
                 strerror(errno)
                 );
-            unlink(outputTemp);
             success = false;
         }
+        unlink(outputTemp);
     } else {
         unlink(outputTemp);
     }

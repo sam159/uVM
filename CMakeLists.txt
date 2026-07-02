@@ -3,7 +3,7 @@ project(uVM C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(uVM main.c vm.c vm.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h)
+add_executable(uVM main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h)
 target_include_directories(uVM PRIVATE asm)
 
 # Test infrastructure
