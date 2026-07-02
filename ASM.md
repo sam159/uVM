@@ -139,7 +139,8 @@ the type may be one of
 - `DB` - single byte
     - absolute value
 - `DW` - word / two bytes
-    -  absolute value
+    - absolute value (e.g., `0x1000`)
+    - label reference (e.g., `:handler`) - stores the 16-bit address of the label
 - `DX` - hex data
     - one or more bytes in hex format, prefixed with `0x`
 - `STZ` - null terminated string
@@ -160,6 +161,11 @@ the type may be one of
 :data :hex1 DX 0x010203040506   ; 6-bytes stored at 0x2000
 :data :helloZ STZ "Hello"       ; stores 0x65486C6C7200
 :data :helloL STL "Hello"       ; stores 0x000A65486C6C72
+
+; Jump table with label references
+:data :jtable DW :handler0
+:data DW :handler1
+:data DW :handler2
 ```
 
 ## Patterns / Practices
