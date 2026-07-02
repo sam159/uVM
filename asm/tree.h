@@ -56,6 +56,7 @@ typedef struct {
     ASMProgramDataType type;
     uint8_t *data;
     uint32_t data_length;
+    char *value_label;
 } ASMProgramData;
 
 /* ASMProgramAlias */
