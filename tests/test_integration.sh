@@ -27,8 +27,19 @@ for asm_file in programs/*.asm programs/*/*.asm; do
             echo "FAIL (assembly error)"
             FAIL=$((FAIL + 1))
         else
-            echo "PASS"
-            PASS=$((PASS + 1))
+            # Execute the assembled binary and validate output
+            set +e
+            run_output=$(./cmake-build-debug/uVM /tmp/test_output.bin 2>&1)
+            run_exit=$?
+            set -e
+
+            if echo "$run_output" | grep -q "Halted with code 0"; then
+                echo "PASS"
+                PASS=$((PASS + 1))
+            else
+                echo "FAIL (execution: exit=$run_exit)"
+                FAIL=$((FAIL + 1))
+            fi
         fi
     fi
 done
