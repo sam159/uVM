@@ -168,6 +168,19 @@ the type may be one of
 :data DW :handler2
 ```
 
+### Word Alignment
+
+All instructions must be word-aligned (at even addresses). After a `:data` directive, the assembler automatically inserts a zero padding byte if the current address is odd. This ensures the next instruction or data directive starts at an even address.
+
+Example:
+```asm
+:data DB 0x42     ; 1 byte at address 0x0000
+; padding byte inserted at 0x0001
+HLT 0             ; instruction at address 0x0002 (aligned)
+```
+
+`DW` directives are already word-aligned and do not require padding.
+
 ## Patterns / Practices
 
 ### `R1` as source for one
