@@ -138,9 +138,8 @@ Errors are reported via the `error` hook and halt the VM:
 4. Increments PC by 2 (except for jumps which set PC directly).
 5. The main loop calls `vm_step()` repeatedly until `vm->halted` is true.
 
-
 ## TODO
 
 ASM
-- Allow DW data directives to reference labels
 - Check that instructions are word aligned
+- Don't emit empty memory up to the first origin/address in use. Output memory map after compile.
