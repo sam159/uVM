@@ -23,7 +23,11 @@ start:  LDI     $ONE, 1
 
 
         ; R2 should be 10 (5 * 2)
-return: HLT     $ARG
+return: LDI R3, 10
+        JPC R3, EQ, $ARG
+        HLT 1
+
+        HLT 0               ; all ok
 
 ; subroutine: doubles the value in R2
 

@@ -560,6 +560,11 @@ static int parse_operands_v(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
+        if ((*operands)[0].type == ASM_OPERAND_VARIABLE) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "variables not permitted for HLT");
+            free_operands(*operands, 0); *operands = NULL;
+            return 0;
+        }
     } else {
         if (!parse_rel_operand(tokens, pos, &(*operands)[0])) {
             parse_error(filename, line, tokens->tokens[*pos].col, "expected relative address");
