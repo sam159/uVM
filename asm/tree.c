@@ -344,12 +344,12 @@ static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
 
 static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
                             ASMProgramInstructionOperand **operands, uint32_t *operand_count,
-                            const char *filename, int line, int col) {
+                            const char *filename, int line) {
     if (opcode == ASM_INST_JPF) {
         *operands = malloc(sizeof(ASMProgramInstructionOperand));
         if (!*operands) return 0;
         if (!parse_mem_operand(tokens, pos, *operands)) {
-            parse_error(filename, line, col, "expected [reg16] or [reg16+rel] for JPF");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected [reg16] or [reg16+rel]");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
@@ -359,19 +359,19 @@ static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
         
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8 for JNZ");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
         
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ',' after reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ',' after reg8");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
         
         if (!parse_rel_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected relative address for JNZ");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected relative address");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -383,19 +383,19 @@ static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
 static int parse_operands_s(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
                             ASMProgramInstructionOperand **operands, uint32_t *operand_count,
-                            const char *filename, int line, int col) {
+                            const char *filename, int line) {
     *operands = malloc(3 * sizeof(ASMProgramInstructionOperand));
     if (!*operands) return 0;
 
     for (int i = 0; i < 3; i++) {
         if (!parse_reg8_operand(tokens, pos, &(*operands)[i])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, i); *operands = NULL;
             return 0;
         }
 
         if (i < 2 && !expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, i + 1); *operands = NULL;
             return 0;
         }
@@ -407,25 +407,25 @@ static int parse_operands_s(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
 static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
                             ASMProgramInstructionOperand **operands, uint32_t *operand_count,
-                            const char *filename, int line, int col) {
+                            const char *filename, int line) {
     if (opcode == ASM_INST_LDA) {
         *operands = malloc(2 * sizeof(ASMProgramInstructionOperand));
         if (!*operands) return 0;
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8 for LDA");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!parse_mem_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected [reg16] or [reg16+rel]");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected [reg16] or [reg16+rel]");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -435,19 +435,19 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
 
         if (!parse_mem_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected [reg16] or [reg16+rel]");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected [reg16] or [reg16+rel]");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -457,19 +457,19 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected value8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected value8");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -479,7 +479,7 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
@@ -489,19 +489,19 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected value4");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected value4");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -511,37 +511,37 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
         if (!*operands) return 0;
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!parse_test_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, col, "expected test");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected test");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
 
         if (!expect_comma(tokens, pos)) {
-            parse_error(filename, line, col, "expected ','");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
             free_operands(*operands, 2); *operands = NULL;
             return 0;
         }
 
         if (!parse_reg8_operand(tokens, pos, &(*operands)[2])) {
-            parse_error(filename, line, col, "expected reg8");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
             free_operands(*operands, 2); *operands = NULL;
             return 0;
         }
         *operand_count = 3;
     } else {
-        parse_error(filename, line, col, "unknown T format opcode");
+        parse_error(filename, line, tokens->tokens[*pos].col, "unknown T format opcode");
         return 0;
     }
 
@@ -550,19 +550,19 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
 static int parse_operands_v(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionType opcode,
                             ASMProgramInstructionOperand **operands, uint32_t *operand_count,
-                            const char *filename, int line, int col) {
+                            const char *filename, int line) {
     *operands = malloc(sizeof(ASMProgramInstructionOperand));
     if (!*operands) return 0;
 
     if (opcode == ASM_INST_HLT) {
         if (!parse_value_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected value12 for HLT");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected value12 for HLT");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
     } else {
         if (!parse_rel_operand(tokens, pos, &(*operands)[0])) {
-            parse_error(filename, line, col, "expected relative address");
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected relative address");
             free_operands(*operands, 0); *operands = NULL;
             return 0;
         }
@@ -636,8 +636,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             }
             int64_t addr;
             if (!parse_number(tokens->tokens[pos].value, &addr) || addr < 0 || addr > 0xFFFF) {
-                parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
-                           "invalid origin address");
+                parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col, "invalid origin address");
                 goto fail;
             }
             current_address = (uint16_t)addr;
@@ -707,12 +706,12 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
             while (pos < tokens->count && tokens->tokens[pos].type == ASM_TOKEN_COMMENT) pos++;
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
-                parse_error(filename, start_line, start_col, "expected newline after alias");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "expected newline after alias");
                 goto fail;
             }
 
             line = calloc(1, sizeof(ASMProgramLine));
-            if (!line) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+            if (!line) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
             line->type = ASM_PROGRAM_LINE_ALIAS;
             line->line_number = start_line;
             line->address = current_address;
@@ -720,7 +719,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->alias.value = value;
 
             if (!program_append_line(program, line)) {
-                parse_error(filename, start_line, start_col, "out of memory");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
                 goto fail;
             }
             var_name = NULL; line = NULL;
@@ -735,13 +734,13 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
             if (pos < tokens->count && tokens->tokens[pos].type == ASM_TOKEN_LABEL_REF) {
                 data_label = malloc(tokens->tokens[pos].value_len + 1);
-                if (!data_label) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+                if (!data_label) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
                 strcpy(data_label, tokens->tokens[pos].value);
                 pos++;
             }
 
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_DATA_TYPE) {
-                parse_error(filename, start_line, start_col, "expected data type");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "expected data type");
                 goto fail;
             }
 
@@ -767,7 +766,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
             if (dtype == ASM_DATA_DB) {
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
-                    parse_error(filename, start_line, start_col, "expected number for DB");
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number for DB");
                     goto fail;
                 }
                 int64_t val;
@@ -783,7 +782,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 pos++;
             } else if (dtype == ASM_DATA_DW) {
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
-                    parse_error(filename, start_line, start_col, "expected number for DW");
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number for DW");
                     goto fail;
                 }
                 int64_t val;
@@ -793,14 +792,14 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                     goto fail;
                 }
                 data_buf = malloc(2);
-                if (!data_buf) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+                if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
                 data_buf[0] = (uint8_t)(val >> 8);
                 data_buf[1] = (uint8_t)val;
                 data_len = 2;
                 pos++;
             } else if (dtype == ASM_DATA_STZ || dtype == ASM_DATA_STL) {
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_STRING) {
-                    parse_error(filename, start_line, start_col, "expected string");
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected string");
                     goto fail;
                 }
 
@@ -809,7 +808,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
                 size_t needed = str_len + (dtype == ASM_DATA_STZ ? 1 : 2);
                 data_buf = malloc(needed);
-                if (!data_buf) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+                if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
 
                 if (dtype == ASM_DATA_STL) {
                     data_buf[0] = (uint8_t)(str_len >> 8);
@@ -824,7 +823,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 pos++;
             } else if (dtype == ASM_DATA_DX) {
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
-                    parse_error(filename, start_line, start_col, "expected hex number for DX");
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected hex number for DX");
                     goto fail;
                 }
                 const char *hex_str = tokens->tokens[pos].value;
@@ -860,12 +859,12 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
             while (pos < tokens->count && tokens->tokens[pos].type == ASM_TOKEN_COMMENT) pos++;
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
-                parse_error(filename, start_line, start_col, "expected newline after :data");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "expected newline after :data");
                 goto fail;
             }
 
             line = calloc(1, sizeof(ASMProgramLine));
-            if (!line) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+            if (!line) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
             line->type = ASM_PROGRAM_LINE_DATA;
             line->line_number = start_line;
             line->address = current_address;
@@ -877,7 +876,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             current_address += data_len;
 
             if (!program_append_line(program, line)) {
-                parse_error(filename, start_line, start_col, "out of memory");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
                 goto fail;
             }
             data_label = NULL; data_buf = NULL; line = NULL;
@@ -896,7 +895,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 pos++;
 
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_OPCODE) {
-                    parse_error(filename, start_line, start_col, "expected opcode after label");
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected opcode after label");
                     goto fail;
                 }
                 tok = &tokens->tokens[pos];
@@ -911,25 +910,25 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 
             if (opcode == ASM_INST_JPF || opcode == ASM_INST_JNZ) {
                 if (!parse_operands_q(tokens, &pos, opcode, &operands, &operand_count,
-                                      filename, start_line, start_col)) {
+                                      filename, start_line)) {
                     goto fail;
                 }
             } else if (opcode == ASM_INST_ADD || opcode == ASM_INST_ADC || opcode == ASM_INST_SUB ||
                        opcode == ASM_INST_SBC || opcode == ASM_INST_AND) {
                 if (!parse_operands_s(tokens, &pos, opcode, &operands, &operand_count,
-                                      filename, start_line, start_col)) {
+                                      filename, start_line)) {
                     goto fail;
                 }
             } else if (opcode == ASM_INST_LDA || opcode == ASM_INST_STA || opcode == ASM_INST_LDI ||
                        opcode == ASM_INST_NOT || opcode == ASM_INST_SHL || opcode == ASM_INST_SHR ||
                        opcode == ASM_INST_JPC) {
                 if (!parse_operands_t(tokens, &pos, opcode, &operands, &operand_count,
-                                      filename, start_line, start_col)) {
+                                      filename, start_line)) {
                     goto fail;
                 }
             } else if (opcode == ASM_INST_JMP || opcode == ASM_INST_HLT) {
                 if (!parse_operands_v(tokens, &pos, opcode, &operands, &operand_count,
-                                      filename, start_line, start_col)) {
+                                      filename, start_line)) {
                     goto fail;
                 }
             }
@@ -937,12 +936,12 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             while (pos < tokens->count && tokens->tokens[pos].type == ASM_TOKEN_COMMENT) pos++;
 
             if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NEWLINE) {
-                parse_error(filename, start_line, start_col, "expected newline after instruction");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "expected newline");
                 goto fail;
             }
 
             line = calloc(1, sizeof(ASMProgramLine));
-            if (!line) { parse_error(filename, start_line, start_col, "out of memory"); goto fail; }
+            if (!line) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
             line->type = ASM_PROGRAM_LINE_INSTRUCTION;
             line->line_number = start_line;
             line->address = current_address;
@@ -954,7 +953,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             current_address += 2;
 
             if (!program_append_line(program, line)) {
-                parse_error(filename, start_line, start_col, "out of memory");
+                parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
                 goto fail;
             }
             label = NULL; operands = NULL; operand_count = 0; line = NULL;

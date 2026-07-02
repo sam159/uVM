@@ -123,12 +123,12 @@ similarly not setting any bits will not pass for any value.
 
 Errors are reported via the `error` hook and halt the VM:
 
-| Code | Constant               | Condition                                    |
-|------|------------------------|----------------------------------------------|
-| 1    | `VM_ERR_MISALIGN`      | PC is not word-aligned on instruction fetch. |
-| 2    | `VM_ERR_UNKNOWN_OP`    | Opcode is not recognized (0–F).              |
-| 3    | `VM_ERR_OUT_OF_BOUNDS` | Memory access address >= 0x10000.            |
-| 4    | `VM_ERR_JUMP_SELF`     | An jump instruction jumped to itself         |
+| Code | Constant               | Condition                                                           |
+|------|------------------------|---------------------------------------------------------------------|
+| 1    | `VM_ERR_MISALIGN`      | PC is not word-aligned on instruction fetch.                        |
+| 2    | `VM_ERR_UNKNOWN_OP`    | Opcode is not recognized (0–F). Redundant, exists for completeness. |
+| 3    | `VM_ERR_OUT_OF_BOUNDS` | Memory access address >= 0x10000.                                   |
+| 4    | `VM_ERR_JUMP_SELF`     | An jump instruction jumped to itself                                |
 
 ### Execution Model
 
@@ -141,5 +141,6 @@ Errors are reported via the `error` hook and halt the VM:
 
 ## TODO
 
+ASM
 - Allow DW data directives to reference labels
-- When assembling, check that instructions are word aligned
+- Check that instructions are word aligned
