@@ -188,10 +188,10 @@ static int test_data_emit(void) {
     if (!asm_emit(prog, f)) { printf("FAIL [data]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
-    uint8_t buf[3];
-    fread(buf, 1, 3, f);
-    if (buf[0] != 42 || buf[1] != 0x12 || buf[2] != 0x34) {
-        printf("FAIL [data]: got %02x %02x %02x, expected 2A 12 34\n", buf[0], buf[1], buf[2]);
+    uint8_t buf[4];
+    fread(buf, 1, 4, f);
+    if (buf[0] != 42 || buf[1] != 0x00 || buf[2] != 0x12 || buf[3] != 0x34) {
+        printf("FAIL [data]: got %02x %02x %02x %02x, expected 2A 00 12 34\n", buf[0], buf[1], buf[2], buf[3]);
         fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1;
     }
     fclose(f);
