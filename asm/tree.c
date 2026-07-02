@@ -584,12 +584,13 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
     ASMProgramInstructionOperand *operands = NULL;
     uint32_t operand_count = 0;
     uint8_t *data_buf = NULL;
+    char *data_label_ref = NULL;
     ASMProgramLine *line = NULL;
 
     while (pos < tokens->count) {
         AsmToken *tok = &tokens->tokens[pos];
         label = NULL; data_label = NULL; var_name = NULL;
-        operands = NULL; operand_count = 0; data_buf = NULL; line = NULL;
+        operands = NULL; operand_count = 0; data_buf = NULL; data_label_ref = NULL; line = NULL;
 
         if (tok->type == ASM_TOKEN_WHITESPACE) { pos++; continue; }
         if (tok->type == ASM_TOKEN_EOF) break;
@@ -781,22 +782,36 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 data_len = 1;
                 pos++;
             } else if (dtype == ASM_DATA_DW) {
-                if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_NUMBER) {
-                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number for DW");
+                if (pos >= tokens->count) {
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number or label for DW");
                     goto fail;
                 }
-                int64_t val;
-                if (!parse_number(tokens->tokens[pos].value, &val) || val < 0 || val > 0xFFFF) {
-                    parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
-                               "DW value out of range");
+                if (tokens->tokens[pos].type == ASM_TOKEN_NUMBER) {
+                    int64_t val;
+                    if (!parse_number(tokens->tokens[pos].value, &val) || val < 0 || val > 0xFFFF) {
+                        parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
+                                   "DW value out of range");
+                        goto fail;
+                    }
+                    data_buf = malloc(2);
+                    if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
+                    data_buf[0] = (uint8_t)(val >> 8);
+                    data_buf[1] = (uint8_t)val;
+                    data_len = 2;
+                    pos++;
+                } else if (tokens->tokens[pos].type == ASM_TOKEN_LABEL_REF) {
+                    const char *ref = tokens->tokens[pos].value;
+                    size_t ref_len = tokens->tokens[pos].value_len;
+                    data_label_ref = malloc(ref_len);
+                    if (!data_label_ref) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
+                    memcpy(data_label_ref, ref + 1, ref_len - 1);
+                    data_label_ref[ref_len - 1] = '\0';
+                    data_len = 2;
+                    pos++;
+                } else {
+                    parse_error(filename, start_line, tokens->tokens[pos].col, "expected number or label for DW");
                     goto fail;
                 }
-                data_buf = malloc(2);
-                if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
-                data_buf[0] = (uint8_t)(val >> 8);
-                data_buf[1] = (uint8_t)val;
-                data_len = 2;
-                pos++;
             } else if (dtype == ASM_DATA_STZ || dtype == ASM_DATA_STL) {
                 if (pos >= tokens->count || tokens->tokens[pos].type != ASM_TOKEN_STRING) {
                     parse_error(filename, start_line, tokens->tokens[pos].col, "expected string");
@@ -872,6 +887,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->data.type = dtype;
             line->data.data = data_buf;
             line->data.data_length = data_len;
+            line->data.value_label = data_label_ref;
 
             current_address += data_len;
 
@@ -879,7 +895,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
                 goto fail;
             }
-            data_label = NULL; data_buf = NULL; line = NULL;
+            data_label = NULL; data_buf = NULL; data_label_ref = NULL; line = NULL;
             pos++;
             continue;
         }
@@ -976,6 +992,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
 fail:
     free(label);
     free(data_label);
+    free(data_label_ref);
     free(var_name);
     free(data_buf);
     free_operands(operands, operand_count);
@@ -1199,6 +1216,7 @@ void asm_free_program(ASMProgram *program) {
                 case ASM_PROGRAM_LINE_DATA:
                     free(line->data.label);
                     free(line->data.data);
+                    free(line->data.value_label);
                     break;
                 case ASM_PROGRAM_LINE_ALIAS:
                     free(line->alias.variable);
