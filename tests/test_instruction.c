@@ -7,12 +7,16 @@
 int main(void) {
     AsmTokenList *tokens = asm_token_list_create();
 
-    // HLT
+    // HLT R0, 0
     AsmToken t1 = {ASM_TOKEN_OPCODE, strdup("HLT"), 3, 1, 1};
     asm_token_list_append(tokens, t1);
-    AsmToken t_operand = {ASM_TOKEN_NUMBER, strdup("0"), 1, 1, 4};
+    AsmToken t_reg = {ASM_TOKEN_REGISTER, strdup("R0"), 2, 1, 5};
+    asm_token_list_append(tokens, t_reg);
+    AsmToken t_comma = {ASM_TOKEN_SYMBOL, strdup(","), 1, 1, 7};
+    asm_token_list_append(tokens, t_comma);
+    AsmToken t_operand = {ASM_TOKEN_NUMBER, strdup("0"), 1, 1, 9};
     asm_token_list_append(tokens, t_operand);
-    AsmToken t2 = {ASM_TOKEN_NEWLINE, strdup(""), 0, 1, 5};
+    AsmToken t2 = {ASM_TOKEN_NEWLINE, strdup(""), 0, 1, 10};
     asm_token_list_append(tokens, t2);
 
     // EOF
@@ -47,8 +51,8 @@ int main(void) {
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operand_count != 1) {
-        printf("FAIL: expected 1 operand, got %u\n",
+    if (prog->lines[0]->instruction.operand_count != 2) {
+        printf("FAIL: expected 2 operands, got %u\n",
                prog->lines[0]->instruction.operand_count);
         asm_free_program(prog);
         asm_token_list_free(tokens);

@@ -22,8 +22,10 @@ int main(void) {
         AsmTokenList *tokens = asm_token_list_create();
         asm_token_list_append(tokens, make_token(ASM_TOKEN_LABEL, ":loop", 1, 1));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 1, 6));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 1, 10));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 11));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 1, 10));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 12));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 1, 14));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 15));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 2, 1));
 
         ASMProgram *prog = asm_parse("test.asm", tokens);
@@ -57,8 +59,10 @@ int main(void) {
         asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 9));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_LABEL, ":end", 2, 1));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 2, 5));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 2, 9));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 10));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 2, 9));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 2, 11));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 2, 13));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 14));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 3, 1));
 
         ASMProgram *prog = asm_parse("test.asm", tokens);

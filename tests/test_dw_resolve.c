@@ -33,8 +33,10 @@ int main(void) {
         /* target: HLT 0 */
         asm_token_list_append(tokens, make_token(ASM_TOKEN_LABEL, "target", 3, 1));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 3, 8));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 3, 12));
-        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 3, 13));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 3, 12));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 3, 14));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 3, 16));
+        asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 3, 17));
         asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 4, 1));
 
         ASMProgram *prog = asm_parse("test.asm", tokens);
