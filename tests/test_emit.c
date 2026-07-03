@@ -28,7 +28,8 @@ static int test_hlt_v_format(void) {
     if (!asm_resolve(prog)) { printf("FAIL [hlt]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [hlt]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [hlt]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[2];
@@ -58,7 +59,8 @@ static int test_ldi_q_format(void) {
     if (!asm_resolve(prog)) { printf("FAIL [ldi]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [ldi]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [ldi]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[2];
@@ -90,7 +92,8 @@ static int test_add_s_format(void) {
     if (!asm_resolve(prog)) { printf("FAIL [add]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [add]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [add]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[2];
@@ -118,7 +121,8 @@ static int test_not_t_format(void) {
     if (!asm_resolve(prog)) { printf("FAIL [not]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [not]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [not]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[2];
@@ -157,7 +161,8 @@ static int test_jmp_label_v_format(void) {
     if (!asm_resolve(prog)) { printf("FAIL [jmp_label]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [jmp_label]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [jmp_label]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[6];
@@ -192,7 +197,8 @@ static int test_data_emit(void) {
     if (!asm_resolve(prog)) { printf("FAIL [data]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [data]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset))  { printf("FAIL [data]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     uint8_t buf[4];
@@ -229,7 +235,8 @@ static int test_origin_emit(void) {
     if (!asm_resolve(prog)) { printf("FAIL [origin]: resolve\n"); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     FILE *f = tmpfile();
-    if (!asm_emit(prog, f)) { printf("FAIL [origin]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
+    uint16_t offset = 0;
+    if (!asm_emit(prog, f, &offset)) { printf("FAIL [origin]: emit\n"); fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1; }
 
     rewind(f);
     fseek(f, 0, SEEK_END);
