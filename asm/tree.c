@@ -1448,17 +1448,18 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
         }
 
         case ASM_INST_HLT: {
+            const uint8_t rd = inst->operands[0].reg8;
             uint16_t val;
-            if (inst->operands[0].type == ASM_OPERAND_VALUE16) {
-                val = inst->operands[0].value16;
+            if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
+                val = inst->operands[1].value16;
             } else {
-                val = inst->operands[0].value8;
+                val = inst->operands[1].value8;
             }
-            if (val > 0xFFF) {
-                fprintf(stderr, "error: HLT operand %u exceeds 12 bits\n", val);
+            if (val > 0xFF) {
+                fprintf(stderr, "error: HLT operand %u exceeds 8 bits\n", val);
                 return false;
             }
-            *encoded = (uint16_t)op << 12 | val & 0xFFF;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint8_t)val;
             break;
         }
         case ASM_INST_JMP: {
