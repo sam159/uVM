@@ -161,9 +161,9 @@ bool vm_step(VM *vm) {
     uint16_t rdx = 0, rxx = 0, temp16 = 0;
     switch (inst.op) {
         case OP_HLT:
-            vm_decode_V(&inst, raw);
+            vm_decode_Q(&inst, raw);
             vm->halted = true;
-            vm->haltCode = inst.immx;
+            vm->haltCode = (uint16_t)vm_get_r(vm, inst.rd) + (uint16_t)inst.imm;
             break;
         case OP_LDA:
             vm_decode_T(&inst, raw);
