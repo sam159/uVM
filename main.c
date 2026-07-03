@@ -78,10 +78,10 @@ static void print_usage(const char *prog) {
     }
 
     fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "  %s program.bin                          # load at 0x0000\n", basename);
+    fprintf(stderr, "  %s program.bin                            # load at 0x0000\n", basename);
     fprintf(stderr, "  %s -a 0x100 file1.bin -a 0x200 file2.bin  # multiple files at absolute addresses\n", basename);
-    fprintf(stderr, "  %s -p 0x100 program.bin                 # set PC to 0x100\n", basename);
-    fprintf(stderr, "  %s -c file.asm [-o output.bin]          # assemble into binary format\n", basename);
+    fprintf(stderr, "  %s -p 0x100 program.bin                   # set PC to 0x100\n", basename);
+    fprintf(stderr, "  %s -c file.asm [-o output.bin]            # assemble into binary format\n", basename);
 }
 
 static uint8_t host_read(uint16_t addr, bool instruction) {

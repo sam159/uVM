@@ -15,6 +15,9 @@ Spaces and tabs are ignored.
 Lines may be up to 1024 bytes in length and terminated with either LF or CRLF.
 A word in two bytes in big-endian format.
 
+During compilation any unused leading address space is not emitted; this is intended so that multiple binaries
+can be loaded with specific addresses into memory, i.e., common library/rom code and a program.
+
 ## Registers
 
 - `R0` / `RX0` / `RZ` / `RXZ` zero register (Always reads as zero)
@@ -172,13 +175,18 @@ Odd-sized data that precedes an instruction is padded to keep it word-aligned.
 
 ### Word Alignment
 
-All instructions must be word-aligned (at even addresses). After a `:data` directive, the assembler automatically inserts a zero padding byte if the current address is odd. This ensures the next instruction or data directive starts at an even address.
+All instructions must be word-aligned (at even addresses). Before an instruction an empty null byte is added if the alignment is odd.
+This ensures the next instruction starts at an even address.
 
 Example:
 ```asm
 :data DB 0x42     ; 1 byte at address 0x0000
 ; padding byte inserted at 0x0001
 HLT R0, 0         ; instruction at address 0x0002 (aligned)
+:data DB 0x43     ; 1 byte at address 0x0004
+:data DB 0x44     ; 1 byte at address 0x0005
+; no padding
+HLT R0, 1         ; instruction at address 0x0006 (aligned)
 ```
 
 `DW` directives are already word-aligned and do not require padding.

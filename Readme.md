@@ -3,6 +3,48 @@
 This is an 8-bit virtual machine with 16-bit addressing. It is RISC-style with no direct operations on memory, instead
 operations are done on one of 16 8-bit registers with 6 16-bit registers mapped over them.
 
+An [ASM language](ASM.md) is defined and implemented for this VM.
+
+## Building / Running
+
+CMake and a C build toolchain are required to build. On a debian-based system install `build-essential` and `cmake` packages.
+
+```shell
+# setup makefiles (run once)
+$ cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -S . -B ./cmake-build-release
+# build project
+$ cmake --build ./cmake-build-release --target uVM
+```
+
+Usage is printed with no options given.
+
+```shell
+$ ./cmake-build-release/uVM 
+Usage:
+  uVM program.bin                            # load at 0x0000
+  uVM -a 0x100 file1.bin -a 0x200 file2.bin  # multiple files at absolute addresses
+  uVM -p 0x100 program.bin                   # set PC to 0x100
+  uVM -c file.asm [-o output.bin]            # assemble into binary format
+```
+
+Compiling and running asm files can be achieved with the following.  
+
+```shell
+$ ./cmake-build-release/uVM -c programs/basic.asm -o programs/basic.bin
+Assembling 'programs/basic.asm' -> 'programs/basic.bin'
+$ /cmake-build-release/uVM programs/basic.bin                         
+Loaded 'programs/basic.bin' at 0x0000 (272 bytes)
+VM Halted with code 0
+PC: 0110  carry: 0  halted: 1 haltcode: 0000 (0)
+R0: 00 (000) R4: 02 (002) R8: 00 (000) RC: 00 (000) 
+R1: 01 (001) R5: 00 (000) R9: 00 (000) RD: 00 (000) 
+R2: 64 (100) R6: 00 (000) RA: 00 (000) RE: 00 (000) 
+R3: 00 (000) R7: 00 (000) RB: 00 (000) RF: 00 (000) 
+RXB: 00 (00000) RXE: 00 (00000)
+RXC: 00 (00000) RXF: 00 (00000)
+RXD: 00 (00000)
+```
+
 ## VM
 
 ### Registers and Flags
@@ -50,7 +92,7 @@ All instructions are two bytes (big-endian). The upper four bits are the opcode.
 | V      | `[op:4][imm12:12]`           | 12-bit immediate                                |
 
 
-### Operations
+## Operations / Opcodes
 
 Operand terms
 - `exitcode` - sets the vm exitcode
@@ -89,7 +131,7 @@ All jumps are in words/instructions.
 | `E` | JNZ      | Q      | `PC ← PC + imm8_s_x2` if `rd != 0` | Conditional jump. Add `imm8_s_x2` to PC if `rd` is not zero                               |
 | `F` | JPC      | T      | `PC ← PC + 2` if `!test(rd,rx)`    | Conditional jump. Skips the next instruction if `test` passes for values in `rd` and `rx` |
 
-## Conditional Jumps
+### Conditional Jumps
 
 Test types, used for comparing values in `rd` and `rx`.
 
@@ -119,7 +161,7 @@ similarly not setting any bits will not pass for any value.
 | GTE      | 5      | 0101   | Greater than or equal                        |
 | ~GTE     | 13     | 1101   | Not greater than or equal                    |
 
-### Error Handling
+## Error Handling
 
 Errors are reported via the `error` hook and halt the VM:
 
@@ -130,7 +172,7 @@ Errors are reported via the `error` hook and halt the VM:
 | 3    | `VM_ERR_OUT_OF_BOUNDS` | Memory access address >= 0x10000.                                   |
 | 4    | `VM_ERR_JUMP_SELF`     | An jump instruction jumped to itself                                |
 
-### Execution Model
+## Execution Model
 
 1. `vm_step()` fetches one 2-byte instruction from `readAddr(PC)`.
 2. Decodes the opcode and operand format.
@@ -141,7 +183,6 @@ Errors are reported via the `error` hook and halt the VM:
 ## TODO
 
 VM
-- Improve option parsing
 - Add device support
   - Console
   - File
