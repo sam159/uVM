@@ -64,7 +64,7 @@ Operands
 
 | Mnemonic | Format | Operands                                           |
 |----------|--------|----------------------------------------------------|
-| HLT      | V      | `HLT value12`                                      |
+| HLT      | Q      | `HLT reg8, value8`                                 |
 | LDA      | T      | `LDA reg16, [reg16]` or `LDA reg16, [reg16 + rel]` |
 | STA      | T      | `STA [reg16], reg16` or `STA [reg16 + rel], reg16` |
 | LDI      | Q      | `LDI reg8, value8`                                 |
@@ -99,8 +99,8 @@ LDI R2, 10
 :loop2  SUB R2, R2, R1
         JNZ R2, -:loop  : jump backwards if R2 == 0, -:loop resolves to current instruction - target instruction
         JMP +1          ; jump forwards one instruction
-        HLT 1           ; jumped over
-        HLT 0
+        HLT R0, 1       ; jumped over
+        HLT R0, 0
 ```
 
 ## Directives
@@ -178,7 +178,7 @@ Example:
 ```asm
 :data DB 0x42     ; 1 byte at address 0x0000
 ; padding byte inserted at 0x0001
-HLT 0             ; instruction at address 0x0002 (aligned)
+HLT R0, 0         ; instruction at address 0x0002 (aligned)
 ```
 
 `DW` directives are already word-aligned and do not require padding.
@@ -226,5 +226,5 @@ loop:   ADD     $ACC, $ACC, $INC            ; accumulator += increment
         JNZ     $COUNTER, :loop             ; if iterations is not zero, jump back to label loop
 
 ; Stop VM
-        HLT     0                           ; halt with exit code 0
+        HLT     R0, 0                       ; halt with exit code 0
 ```

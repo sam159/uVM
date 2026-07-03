@@ -18,8 +18,10 @@ int main(void) {
     AsmTokenList *tokens = asm_token_list_create();
 
     asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 1, 1));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "42", 1, 5));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 7));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 1, 5));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 7));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "42", 1, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 11));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 2, 1));
 
     ASMProgram *prog = asm_parse("test.asm", tokens);
@@ -36,22 +38,29 @@ int main(void) {
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operand_count != 1) {
-        printf("FAIL: expected 1 operand, got %u\n", prog->lines[0]->instruction.operand_count);
+    if (prog->lines[0]->instruction.operand_count != 2) {
+        printf("FAIL: expected 2 operands, got %u\n", prog->lines[0]->instruction.operand_count);
         asm_free_program(prog);
         asm_token_list_free(tokens);
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operands[0].type != ASM_OPERAND_VALUE16) {
-        printf("FAIL: expected VALUE16 operand\n");
+    if (prog->lines[0]->instruction.operands[0].type != ASM_OPERAND_REG8) {
+        printf("FAIL: expected REG8 first operand\n");
         asm_free_program(prog);
         asm_token_list_free(tokens);
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operands[0].value16 != 42) {
-        printf("FAIL: expected value 42, got %u\n", prog->lines[0]->instruction.operands[0].value16);
+    if (prog->lines[0]->instruction.operands[1].type != ASM_OPERAND_VALUE16) {
+        printf("FAIL: expected VALUE16 second operand\n");
+        asm_free_program(prog);
+        asm_token_list_free(tokens);
+        return 1;
+    }
+
+    if (prog->lines[0]->instruction.operands[1].value16 != 42) {
+        printf("FAIL: expected value 42, got %u\n", prog->lines[0]->instruction.operands[1].value16);
         asm_free_program(prog);
         asm_token_list_free(tokens);
         return 1;

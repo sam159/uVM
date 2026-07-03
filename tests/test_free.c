@@ -19,8 +19,10 @@ int main(void) {
 
     asm_token_list_append(tokens, make_token(ASM_TOKEN_LABEL, "loop", 1, 1));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 1, 7));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 1, 11));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 12));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 1, 11));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 13));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 1, 15));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 16));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 2, 1));
 
     ASMProgram *prog = asm_parse("test.asm", tokens);
@@ -52,8 +54,8 @@ int main(void) {
         return 1;
     }
 
-    if (prog->lines[0]->instruction.operand_count != 1) {
-        printf("FAIL: expected 1 operand, got %u\n", prog->lines[0]->instruction.operand_count);
+    if (prog->lines[0]->instruction.operand_count != 2) {
+        printf("FAIL: expected 2 operands, got %u\n", prog->lines[0]->instruction.operand_count);
         asm_free_program(prog);
         asm_token_list_free(tokens);
         return 1;

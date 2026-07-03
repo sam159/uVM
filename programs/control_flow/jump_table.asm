@@ -41,7 +41,7 @@ start:  LDI     $ONE, 1
         JPF     [RXC]
 
 ; should not reach here
-        HLT     0xFF
+        HLT     R0, 0xFF
 
 ; jump table: addresses of handlers
 :data :jtable DW :handler0
@@ -57,4 +57,4 @@ handler1:   LDI     $RES, 20            ; result = 20
 handler2:   LDI     $RES, 30            ; result = 30
 
         ; R4 = 20 (handler1 was selected)
-done:       HLT     0
+done:       HLT     R0, 0

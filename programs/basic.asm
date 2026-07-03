@@ -23,4 +23,4 @@ loop:   ADD     $R_ACC, $R_ACC, $R_INC          ; accumulator += increment
         JNZ     $R_COUNT, :loop                 ; if iterations is not zero, jump back to label loop
 
 ; stop vm
-        HLT     0                               ; halt with exit code 0
+        HLT     R0, 0                           ; halt with exit code 0
