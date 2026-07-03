@@ -12,15 +12,15 @@ $R_INC = R4
 ; main program
 :origin 0x100
 ; Set initial values
-start:  LDI     $ONE, 1           ; constant 1
+start:  LDI     $ONE, 1             ; constant 1
         LDI     $R_ACC, 0           ; accumulator = 0
         LDI     $R_COUNT, 50        ; iterations = 50
         LDI     $R_INC, 2           ; increment = 2
 
 ; addition loop
-loop:   ADD     $R_ACC, $R_ACC, $R_INC          ; accumulator += increment
-        SUB     $R_COUNT, $R_COUNT, $ONE      ; iterations--
-        JNZ     $R_COUNT, :loop                 ; if iterations is not zero, jump back to label loop
+loop:   ADD     $R_ACC, $R_ACC, $R_INC      ; accumulator += increment
+        SUB     $R_COUNT, $R_COUNT, $ONE    ; iterations--
+        JNZ     $R_COUNT, :loop             ; if iterations is not zero, jump back to label loop
 
 ; stop vm
-        HLT     R0, 0                           ; halt with exit code 0
+        HLT     R0, 0                       ; halt with exit code 0

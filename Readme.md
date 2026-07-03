@@ -140,9 +140,6 @@ Errors are reported via the `error` hook and halt the VM:
 
 ## TODO
 
-ASM
-- Change HLT to Q-format, halt code = rx + imm
-
 VM
 - Improve option parsing
 - Add device support

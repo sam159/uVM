@@ -366,11 +366,6 @@ static int parse_operands_q(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
-        if ((*operands)[1].type == ASM_OPERAND_VARIABLE) {
-            parse_error(filename, line, tokens->tokens[*pos].col, "variables not permitted for HLT value8");
-            free_operands(*operands, 2); *operands = NULL;
-            return 0;
-        }
         *operand_count = 2;
     } else if (opcode == ASM_INST_JPF) {
         *operands = malloc(sizeof(ASMProgramInstructionOperand));
@@ -703,6 +698,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             }
 
             int64_t value = 0;
+            bool is_register = false;
             if (tokens->tokens[pos].type == ASM_TOKEN_NUMBER) {
                 if (!parse_number(tokens->tokens[pos].value, &value)) {
                     parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
@@ -717,6 +713,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                     goto fail;
                 }
                 value = reg_id;
+                is_register = true;
             } else {
                 parse_error(filename, tokens->tokens[pos].line, tokens->tokens[pos].col,
                            "expected number or register");
@@ -737,6 +734,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
             line->address = current_address;
             line->alias.variable = var_name;
             line->alias.value = value;
+            line->alias.is_register = is_register;
 
             if (!program_append_line(program, line)) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
@@ -1064,6 +1062,7 @@ static int symbol_table_add(ASMSymbolTable *table, const char *name, uint16_t ad
 
 typedef struct {
     char *name;
+    bool is_register;
     int64_t value;
 } AliasEntry;
 
@@ -1071,9 +1070,10 @@ typedef struct {
 bool asm_resolve(ASMProgram *program) {
     if (!program) return false;
 
+    // add all labels to the symbol table
     for (uint32_t i = 0; i < program->line_count; i++) {
-        ASMProgramLine *line = program->lines[i];
-        char *label = NULL;
+        const ASMProgramLine *line = program->lines[i];
+        const char *label = NULL;
         if (line->type == ASM_PROGRAM_LINE_INSTRUCTION && line->instruction.label) {
             label = line->instruction.label;
         } else if (line->type == ASM_PROGRAM_LINE_DATA && line->data.label) {
@@ -1082,7 +1082,7 @@ bool asm_resolve(ASMProgram *program) {
         if (label) {
             const char *name = label;
             if (name[0] == ':') name++;
-            int result = symbol_table_add(&program->symbol_table, name, line->address);
+            const int result = symbol_table_add(&program->symbol_table, name, line->address);
             if (result == 0) {
                 parse_error(program->filename, line->line_number, 0, "duplicate label");
                 return false;
@@ -1094,9 +1094,10 @@ bool asm_resolve(ASMProgram *program) {
         }
     }
 
+    // replace label references in DW data lines
     for (uint32_t i = 0; i < program->line_count; i++) {
         ASMProgramLine *line = program->lines[i];
-        if (line->type == ASM_PROGRAM_LINE_DATA && line->data.value_label) {
+        if (line->type == ASM_PROGRAM_LINE_DATA && line->data.type == ASM_DATA_DW && line->data.value_label) {
             const char *name = line->data.value_label;
             if (name[0] == ':') name++;
             int found = 0;
@@ -1129,11 +1130,12 @@ bool asm_resolve(ASMProgram *program) {
     uint32_t alias_count = 0;
     uint32_t alias_capacity = 0;
 
+    // build list of aliases
     for (uint32_t i = 0; i < program->line_count; i++) {
-        ASMProgramLine *line = program->lines[i];
+        const ASMProgramLine *line = program->lines[i];
         if (line->type == ASM_PROGRAM_LINE_ALIAS) {
             if (alias_count >= alias_capacity) {
-                uint32_t new_cap = alias_capacity ? alias_capacity * 2 : 16;
+                const uint32_t new_cap = alias_capacity ? alias_capacity * 2 : 16;
                 AliasEntry *tmp = realloc(aliases, new_cap * sizeof(AliasEntry));
                 if (!tmp) {
                     parse_error(program->filename, line->line_number, 0, "out of memory");
@@ -1151,24 +1153,28 @@ bool asm_resolve(ASMProgram *program) {
                 free(aliases);
                 return false;
             }
+            aliases[alias_count].is_register = line->alias.is_register;
             aliases[alias_count].value = line->alias.value;
             alias_count++;
         }
     }
 
+    // update instructions with absolute values for variables/labels
     for (uint32_t i = 0; i < program->line_count; i++) {
-        ASMProgramLine *line = program->lines[i];
+        const ASMProgramLine *line = program->lines[i];
         if (line->type != ASM_PROGRAM_LINE_INSTRUCTION) continue;
 
         for (uint32_t j = 0; j < line->instruction.operand_count; j++) {
             ASMProgramInstructionOperand *op = &line->instruction.operands[j];
 
             if (op->type == ASM_OPERAND_VARIABLE) {
+                bool value_is_register = false;
                 int64_t value = 0;
                 int found = 0;
                 for (uint32_t k = 0; k < alias_count; k++) {
                     if (strcmp(op->variable, aliases[k].name) == 0) {
                         value = aliases[k].value;
+                        value_is_register = aliases[k].is_register;
                         found = 1;
                         break;
                     }
@@ -1181,7 +1187,7 @@ bool asm_resolve(ASMProgram *program) {
                 }
                 free(op->variable);
                 op->variable = NULL;
-                if (value >= 0 && value <= 15) {
+                if (value_is_register) {
                     op->type = ASM_OPERAND_REG8;
                     op->reg8 = (uint8_t)value;
                 } else {
@@ -1208,7 +1214,7 @@ bool asm_resolve(ASMProgram *program) {
                 op->label = NULL;
                 if (line->instruction.op == ASM_INST_JMP ||
                     (line->instruction.op == ASM_INST_JNZ && j == 1)) {
-                    int16_t rel = (int16_t)(target_addr - line->address - 2);
+                    const int16_t rel = (int16_t)(target_addr - line->address - 2);
                     op->type = ASM_OPERAND_REL;
                     op->rel = rel;
                 } else {

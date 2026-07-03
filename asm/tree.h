@@ -62,6 +62,7 @@ typedef struct {
 /* ASMProgramAlias */
 typedef struct {
     char *variable;
+    bool is_register;
     int64_t value;
 } ASMProgramAlias;
 
