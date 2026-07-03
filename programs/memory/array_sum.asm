@@ -41,4 +41,4 @@ loop:   LDA     $ELEM, [RXB]        ; load current element
         JNZ     $CNT, :loop
 
         ; R2 = 15 (1+2+3+4+5)
-        HLT     0
+        HLT     R0, 0

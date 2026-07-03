@@ -30,4 +30,4 @@ a_max:  ADD     $MAX, $A, R0       ; MAX = A
 b_max:  ADD     $MAX, $B, R0       ; MAX = B
 
         ; R4 = 8
-done:   HLT     0
+done:   HLT     R0, 0

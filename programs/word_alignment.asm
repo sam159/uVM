@@ -38,6 +38,6 @@ final:  LDI R5, 0x05    ; instruction at 0x11A (aligned)
         JPC R7, EQ, RA
         JMP :FAIL
 
-        HLT 0
+        HLT R0, 0
 
-FAIL:   HLT :final
+FAIL:   HLT R0, 1

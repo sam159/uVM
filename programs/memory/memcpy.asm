@@ -42,4 +42,4 @@ loop:   LDA     $BYTE, [RXB]        ; load byte from source
         JNZ     $CNT, :loop
 
         ; memory at 0x0300-0x0303 should be AA BB CC DD
-        HLT     0
+        HLT     R0, 0

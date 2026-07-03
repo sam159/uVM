@@ -36,4 +36,4 @@ iloop:  ADD     $ACC, $ACC, $ONE    ; acc++
         JNZ     $OUTER, :oloop      ; while outer != 0
 
         ; R4 = 12 (4 * 3)
-        HLT     0
+        HLT     R0, 0
