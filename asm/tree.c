@@ -1496,37 +1496,49 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
     return true;
 }
 
-bool asm_emit(ASMProgram *program, FILE *f_out) {
+bool asm_emit(ASMProgram *program, FILE *f_out, uint16_t *addressOffset) {
     if (!program || !f_out) return false;
 
-    uint16_t earliest_address = UINT16_MAX;
+    uint16_t firstAddress = UINT16_MAX;
     for (uint32_t i = 0; i < program->line_count; i++) {
         const ASMProgramLine *line = program->lines[i];
 
-        if ((line->type == ASM_PROGRAM_LINE_INSTRUCTION || line->type == ASM_PROGRAM_LINE_DATA)
-            && earliest_address == UINT16_MAX) {
-            // first line is an instruction
-            earliest_address = 0;
+        if ((line->type == ASM_PROGRAM_LINE_INSTRUCTION || line->type == ASM_PROGRAM_LINE_DATA)) {
+            if (line->address < firstAddress) {
+                firstAddress = line->address;
+            }
             break;
         }
         if (line->type == ASM_PROGRAM_LINE_ORIGIN) {
-            if (line->address < earliest_address) {
-                earliest_address = line->address;
+            if (line->address < firstAddress) {
+                firstAddress = line->address;
             }
             // origins can only be sequential, don't need to consider any others
             break;
         }
     }
+    *addressOffset = firstAddress;
 
     for (uint32_t i = 0; i < program->line_count; i++) {
         const ASMProgramLine *line = program->lines[i];
         uint16_t encoded;
-
         const long currentPos = ftell(f_out);
-        const size_t pad = line->address - earliest_address - (uint16_t)currentPos;
-        for (size_t j = 0; j < pad; j++) {
-            fputc(0, f_out);
-            if (ferror(f_out)) return false;
+
+        if (line->type == ASM_PROGRAM_LINE_INSTRUCTION || line->type == ASM_PROGRAM_LINE_DATA || line->type == ASM_PROGRAM_LINE_ORIGIN) {
+            // insert any padding needed to get to the lines' address
+            const size_t pad = line->address - firstAddress - (uint16_t)currentPos;
+            if (pad > UINT16_MAX) {
+                fprintf(
+                    stderr,
+                    "error %s:%d:%d: Compile error, invalid address %04X\n",
+                    program->filename, line->line_number, 0, line->address
+                );
+                return false;
+            }
+            for (size_t j = 0; j < pad; j++) {
+                fputc(0, f_out);
+                if (ferror(f_out)) return false;
+            }
         }
 
         switch (line->type) {

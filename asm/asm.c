@@ -91,8 +91,9 @@ bool asm_compile(const char *input, const char *output) {
         success = false;
     }
 
+    uint16_t addressOffset = 0;
     if (success && program) {
-        if (!asm_emit(program, f_out)) {
+        if (!asm_emit(program, f_out, &addressOffset)) {
             success = false;
         }
     }
@@ -115,10 +116,11 @@ bool asm_compile(const char *input, const char *output) {
                 );
             success = false;
         }
-        unlink(outputTemp);
-    } else {
-        unlink(outputTemp);
+        if (addressOffset > 0) {
+            fprintf(stderr, "Non-zero offset. Binary must be loaded at 0x%04X\n", addressOffset);
+        }
     }
+    unlink(outputTemp);
     free(outputTemp);
 
     return success;

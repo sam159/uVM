@@ -172,6 +172,6 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens);
 
 bool asm_resolve(ASMProgram *program);
 
-bool asm_emit(ASMProgram *program, FILE *f_out);
+bool asm_emit(ASMProgram *program, FILE *f_out, uint16_t *addressOffset);
 
 #endif //UVM_ASM_TREE_H
