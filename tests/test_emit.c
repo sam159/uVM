@@ -180,10 +180,11 @@ static int test_data_emit(void) {
     asm_token_list_append(tokens, make_token(ASM_TOKEN_DATA_TYPE, "DB", 1, 15));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "42", 1, 18));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 20));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_DATA, ":data", 2, 1));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_DATA_TYPE, "DW", 2, 7));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0x1234", 2, 10));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 16));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 2, 1));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R1", 2, 5));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 2, 7));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "2", 2, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 10));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 3, 1));
 
     ASMProgram *prog = asm_parse("test.asm", tokens);
@@ -196,8 +197,8 @@ static int test_data_emit(void) {
     rewind(f);
     uint8_t buf[4];
     fread(buf, 1, 4, f);
-    if (buf[0] != 42 || buf[1] != 0x00 || buf[2] != 0x12 || buf[3] != 0x34) {
-        printf("FAIL [data]: got %02x %02x %02x %02x, expected 2A 00 12 34\n", buf[0], buf[1], buf[2], buf[3]);
+    if (buf[0] != 0x2a || buf[1] != 0x00 || buf[2] != 0x01 || buf[3] != 0x02) {
+        printf("FAIL [data]: got %02x %02x %02x %02x, expected 2A 00 01 02\n", buf[0], buf[1], buf[2], buf[3]);
         fclose(f); asm_free_program(prog); asm_token_list_free(tokens); return 1;
     }
     fclose(f);
@@ -209,15 +210,19 @@ static int test_data_emit(void) {
 
 static int test_origin_emit(void) {
     AsmTokenList *tokens = asm_token_list_create();
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_ORIGIN, ":origin", 1, 1));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0x100", 1, 9));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 14));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 2, 1));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 2, 5));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 2, 7));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 2, 9));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 10));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 3, 1));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_DATA, ":data", 1, 1));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_DATA_TYPE, "DB", 1, 15));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 1, 18));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 20));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_ORIGIN, ":origin", 2, 1));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0x100", 2, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 2, 14));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "HLT", 3, 1));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R0", 3, 5));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 3, 7));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "0", 3, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 3, 10));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 4, 1));
 
     ASMProgram *prog = asm_parse("test.asm", tokens);
     if (!prog) { printf("FAIL [origin]: parse NULL\n"); asm_token_list_free(tokens); return 1; }

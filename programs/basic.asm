@@ -1,3 +1,5 @@
+; This program adds 2 to an accumulator 50 times.
+; At the end R2 will have the value 100 (0x64)
 
 ; Register assignments
 $ONE = R1

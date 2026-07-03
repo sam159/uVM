@@ -912,7 +912,10 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory");
                 goto fail;
             }
-            data_label = NULL; data_buf = NULL; data_label_ref = NULL; line = NULL;
+            data_label = NULL;
+            data_buf = NULL;
+            data_label_ref = NULL;
+            line = NULL;
             pos++;
             continue;
         }
@@ -985,6 +988,7 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                 if (!data_buf) { parse_error(filename, start_line, tokens->tokens[pos].col, "out of memory"); goto fail; }
                 data_buf[0] = 0;
                 line->data.data = data_buf;
+                data_buf = NULL;
                 line->data.data_length = 1;
                 line->data.value_label = NULL;
                 current_address++;

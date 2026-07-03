@@ -18,7 +18,7 @@ int main(void) {
     AsmTokenList *tokens = asm_token_list_create();
 
     asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "LDA", 1, 1));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "RXB", 1, 5));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "RA", 1, 5));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 8));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, "[", 1, 10));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "RXB", 1, 11));

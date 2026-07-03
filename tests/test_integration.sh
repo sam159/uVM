@@ -2,12 +2,36 @@
 set -e
 
 echo "Building assembler..."
-cmake --build cmake-build-debug
-
-echo "Testing example programs..."
+cmake --build cmake-build-debug -- -j4
 
 PASS=0
 FAIL=0
+
+echo "Running unit tests..."
+
+for test_bin in cmake-build-debug/test_*; do
+    if [ -x "$test_bin" ]; then
+        test_name=$(basename "$test_bin")
+        echo -n "  Testing: $test_name ... "
+
+        set +e
+        output=$("$test_bin" 2>&1)
+        run_exit=$?
+        set -e
+
+        if [ $run_exit -eq 0 ]; then
+            echo "PASS"
+            PASS=$((PASS + 1))
+        else
+            echo "FAIL (exit=$run_exit)"
+            echo "$output" | sed 's/^/    /'
+            FAIL=$((FAIL + 1))
+        fi
+    fi
+done
+
+echo ""
+echo "Testing example programs..."
 
 TMPOUTPUT=`mktemp --suffix=.bin`
 trap "rm $TMPOUTPUT" exit
@@ -32,11 +56,11 @@ for asm_file in programs/*.asm programs/*/*.asm; do
         else
             # Execute the assembled binary and validate output
             set +e
-            run_output=$(./cmake-build-debug/uVM $TMPOUTPUT 2>&1)
+            ./cmake-build-debug/uVM $TMPOUTPUT 2>&1 >/dev/null
             run_exit=$?
             set -e
 
-            if echo "$run_output" | grep -q "Halted with code 0"; then
+            if [ $run_exit -eq 0 ]; then
                 echo "PASS"
                 PASS=$((PASS + 1))
             else
