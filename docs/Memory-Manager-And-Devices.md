@@ -28,7 +28,7 @@ By default, the following is loaded
 The most basic and essential. This has a length and a flag to allow program writes. For read-only writing is allowed 
 at initialisation time to enable roms/static data to be loaded. Writing should be gated in the device, not the memory manager.
 
-### Timer Device
+### Timer Device (implemented)
 
 This device is to allow the VM to pause execution while waiting for devices to become ready. Address is offset by its location in the manager.
 

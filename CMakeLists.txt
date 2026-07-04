@@ -3,7 +3,7 @@ project(uVM C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(uVM main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h mm/mm.c mm/mm.h devices/memory.c devices/memory.h)
+add_executable(uVM main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h mm/mm.c mm/mm.h devices/memory.c devices/memory.h devices/timer.c devices/timer.h)
 target_include_directories(uVM PRIVATE asm mm devices)
 
 # Test infrastructure
@@ -83,3 +83,7 @@ add_test(NAME test_memory_device COMMAND test_memory_device)
 add_executable(test_mm tests/test_mm.c mm/mm.c)
 target_include_directories(test_mm PRIVATE mm)
 add_test(NAME test_mm COMMAND test_mm)
+
+add_executable(test_timer_device tests/test_timer_device.c devices/timer.c mm/mm.c)
+target_include_directories(test_timer_device PRIVATE mm devices)
+add_test(NAME test_timer_device COMMAND test_timer_device)
