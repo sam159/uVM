@@ -32,26 +32,29 @@ at initialisation time to enable roms/static data to be loaded. Writing should b
 
 This device is to allow the VM to pause execution while waiting for devices to become ready. Address is offset by its location in the manager.
 
-A single 16-bit timer value is available to set, which is a time interval in milliseconds.
-Starting the timer is triggered by setting a bit in the control flags.
+A single 16-bit timer value is available to set. The timer duration is in microseconds unless bit 3 of the control flags
+is set which switches to milliseconds. 
+Starting the timer is triggered by setting a bit in the control flags. The next instruction after setting the start bit 
+of the control flags does not execute until the timer runs to zero.
 
-| Address | Name      | Description                    |
-|---------|-----------|--------------------------------|
-| 0x0     | `CONTROL` | Control flags                  |
-| 0x1     | `TIMER_H` | Timer duration (ms). high byte |
-| 0x2     | `TIMER_L` | Timer duration (ms). low byte  |
+| Address | Name      | Description               |
+|---------|-----------|---------------------------|
+| 0x0     | `CONTROL` | Control flags             |
+| 0x1     | `TIMER_H` | Timer duration. high byte |
+| 0x2     | `TIMER_L` | Timer duration. low byte  |
 
 #### Control flag bits
 
 Unused bits always read zero, writes have no effect.
 
-|             | 8      | 7      | 6      | 5      | 4      | 3      | 2               | 1     |
-|-------------|--------|--------|--------|--------|--------|--------|-----------------|-------|
-| Description | Unused | Unused | Unused | Unused | Unused | Unused | Reset after run | Start |
-| Mode        |        |        |        |        |        |        | R/W             | W/O   |
-| Default     |        |        |        |        |        |        | 0               | 0     |
+|             | 8      | 7      | 6      | 5      | 4      | 3           | 2               | 1     |
+|-------------|--------|--------|--------|--------|--------|-------------|-----------------|-------|
+| Description | Unused | Unused | Unused | Unused | Unused | Miliseconds | Reset after run | Start |
+| Mode        |        |        |        |        |        | R/W         | R/W             | W/O   |
+| Default     |        |        |        |        |        | 0           | 0               | 0     |
 
-- Bit 2 – if set, `TIMER_H` and `TIMER_L` are set to zero after a timer has run. 
+- If bit two is set, `TIMER_H` and `TIMER_L` are set to zero after the timer has run.
+- If bit three is set, the timer is measured in milliseconds instead of microseconds.
 
 ### Serial Device
 
