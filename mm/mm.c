@@ -2,8 +2,7 @@
 #include <stdlib.h>
 
 MMManager *mm_create(void) {
-    MMManager *mm = calloc(1, sizeof(MMManager));
-    return mm;
+    return calloc(1, sizeof(MMManager));
 }
 
 void mm_free(MMManager *mm) {
@@ -11,20 +10,39 @@ void mm_free(MMManager *mm) {
 }
 
 bool mm_register(MMManager *mm, MMDevice device) {
-    (void)mm;
-    (void)device;
-    return false;
+    if (mm->count >= MM_MAX_DEVICES) {
+        return false;
+    }
+    mm->devices[mm->count] = device;
+    mm->count++;
+    return true;
 }
 
 uint8_t mm_read(MMManager *mm, uint16_t addr, bool instruction) {
-    (void)mm;
-    (void)addr;
     (void)instruction;
-    return 0;
+    MMDevice *best = NULL;
+    for (uint8_t i = 0; i < mm->count; i++) {
+        MMDevice *d = &mm->devices[i];
+        if (addr >= d->base && addr < d->base + d->length) {
+            if (!best || d->priority > best->priority) {
+                best = d;
+            }
+        }
+    }
+    if (!best) return 0x00;
+    return best->read(best->ctx, addr - best->base);
 }
 
 void mm_write(MMManager *mm, uint16_t addr, uint8_t data) {
-    (void)mm;
-    (void)addr;
-    (void)data;
+    MMDevice *best = NULL;
+    for (uint8_t i = 0; i < mm->count; i++) {
+        MMDevice *d = &mm->devices[i];
+        if (addr >= d->base && addr < d->base + d->length) {
+            if (!best || d->priority > best->priority) {
+                best = d;
+            }
+        }
+    }
+    if (!best) return;
+    best->write(best->ctx, addr - best->base, data);
 }

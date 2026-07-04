@@ -79,3 +79,7 @@ add_test(NAME test_hlt_q COMMAND test_hlt_q)
 add_executable(test_memory_device tests/test_memory_device.c devices/memory.c mm/mm.c)
 target_include_directories(test_memory_device PRIVATE mm devices)
 add_test(NAME test_memory_device COMMAND test_memory_device)
+
+add_executable(test_mm tests/test_mm.c mm/mm.c)
+target_include_directories(test_mm PRIVATE mm)
+add_test(NAME test_mm COMMAND test_mm)
