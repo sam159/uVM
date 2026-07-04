@@ -75,3 +75,7 @@ target_include_directories(test_dw_resolve PRIVATE asm)
 add_executable(test_hlt_q tests/test_hlt_q.c vm.c)
 target_include_directories(test_hlt_q PRIVATE .)
 add_test(NAME test_hlt_q COMMAND test_hlt_q)
+
+add_executable(test_memory_device tests/test_memory_device.c devices/memory.c mm/mm.c)
+target_include_directories(test_memory_device PRIVATE mm devices)
+add_test(NAME test_memory_device COMMAND test_memory_device)
