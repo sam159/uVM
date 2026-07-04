@@ -16,7 +16,9 @@ static void memory_write(void *ctx, uint16_t addr, uint8_t data) {
 
 static MMDevice create_device(uint16_t base, uint16_t length, bool writable) {
     MemoryDevice *mem = calloc(1, sizeof(MemoryDevice));
+    if (!mem) abort();
     mem->data = calloc(1, length);
+    if (!mem->data) abort();
     mem->length = length;
     mem->writable = writable;
 
@@ -40,6 +42,7 @@ MMDevice memory_device_rom(uint16_t base, uint16_t length) {
 
 void memory_device_load(MMDevice *dev, uint16_t offset, const uint8_t *data, uint16_t len) {
     MemoryDevice *mem = (MemoryDevice *)dev->ctx;
+    if ((uint32_t)offset + len > mem->length) return;
     memcpy(mem->data + offset, data, len);
 }
 
