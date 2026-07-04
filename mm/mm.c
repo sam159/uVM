@@ -23,7 +23,7 @@ uint8_t mm_read(MMManager *mm, uint16_t addr, bool instruction) {
     MMDevice *best = NULL;
     for (uint8_t i = 0; i < mm->count; i++) {
         MMDevice *d = &mm->devices[i];
-        if (addr >= d->base && addr < d->base + d->length) {
+        if (addr >= d->base && (uint32_t)addr < (uint32_t)d->base + d->length) {
             if (!best || d->priority > best->priority) {
                 best = d;
             }
@@ -37,7 +37,7 @@ void mm_write(MMManager *mm, uint16_t addr, uint8_t data) {
     MMDevice *best = NULL;
     for (uint8_t i = 0; i < mm->count; i++) {
         MMDevice *d = &mm->devices[i];
-        if (addr >= d->base && addr < d->base + d->length) {
+        if (addr >= d->base && (uint32_t)addr < (uint32_t)d->base + d->length) {
             if (!best || d->priority > best->priority) {
                 best = d;
             }
