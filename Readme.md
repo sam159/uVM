@@ -182,6 +182,21 @@ Errors are reported via the `error` hook and halt the VM:
 
 ## TODO
 
+Instruction changes
+- Replace `AND` instruction with `BIT` for bitwise operation, not having `OR` is too much of a limitation
+  - change to T format
+  - imm4 used to determine bitwise op on rd and rx
+  - rd is modified by value in rx
+  - operations
+    - `AND`
+    - `OR`
+    - `XOR`
+    - `MOD`
+
+ASM
+- allow variables in STA/LDA address offset
+- allow referencing variable high/low byte with `:h`/`:l`
+
 VM
 - Add device support
   - Console
