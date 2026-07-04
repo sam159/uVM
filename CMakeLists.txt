@@ -3,8 +3,8 @@ project(uVM C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(uVM main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h)
-target_include_directories(uVM PRIVATE asm)
+add_executable(uVM main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h mm/mm.c mm/mm.h devices/memory.c devices/memory.h)
+target_include_directories(uVM PRIVATE asm mm devices)
 
 # Test infrastructure
 set(ASM_SOURCES asm/tree.c asm/token.c)

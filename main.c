@@ -7,8 +7,11 @@
 
 #include "vm.h"
 #include "asm.h"
+#include "mm.h"
+#include "memory.h"
 
-static uint8_t memory[VM_MEM_SIZE + 1];
+static MMManager *manager;
+static MMDevice mem_dev;
 
 static uint16_t load_addrs[32];
 static long load_sizes[32];
@@ -46,13 +49,18 @@ static int load_binary(const char *path, uint16_t addr) {
         return -1;
     }
 
-    size_t read = fread(memory + addr, 1, size, f);
+    uint8_t *buf = malloc(size);
+    size_t read = fread(buf, 1, size, f);
     fclose(f);
 
     if ((long)read != size) {
         fprintf(stderr, "Error: failed to read '%s'\n", path);
+        free(buf);
         return -1;
     }
+
+    memory_device_load(&mem_dev, addr, buf, (uint16_t)size);
+    free(buf);
 
     if (load_count < 32) {
         load_addrs[load_count] = addr;
@@ -85,11 +93,11 @@ static void print_usage(const char *prog) {
 }
 
 static uint8_t host_read(uint16_t addr, bool instruction) {
-    return memory[addr];
+    return mm_read(manager, addr, instruction);
 }
 
 static void host_write(uint16_t addr, uint8_t data) {
-    memory[addr] = data;
+    mm_write(manager, addr, data);
 }
 
 static void host_error(uint8_t err) {
@@ -132,6 +140,10 @@ static void vm_print_state(VM *vm) {
 
 int main(int argc, char *argv[]) {
     VM *vm = new_vm();
+
+    manager = mm_create();
+    mem_dev = memory_device_rw(0x0000, VM_MEM_SIZE);
+    mm_register(manager, mem_dev);
 
     vm->readAddr = host_read;
     vm->writeAddr = host_write;
@@ -199,6 +211,8 @@ int main(int argc, char *argv[]) {
     if (compile_input) {
         bool compileSuccess = asm_compile(compile_input, compile_output);
 
+        memory_device_destroy(&mem_dev);
+        mm_free(manager);
         free_vm(vm);
         return compileSuccess ? 0 : 1;
     }
@@ -218,6 +232,8 @@ int main(int argc, char *argv[]) {
     }
 
     vm_print_state(vm);
+    memory_device_destroy(&mem_dev);
+    mm_free(manager);
     free_vm(vm);
     return exitCode;
 }
