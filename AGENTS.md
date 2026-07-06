@@ -32,7 +32,7 @@ uVM -c file.asm [-o output.bin]            # assemble into binary format
 - **16-bit addressing** via upper 8-bit registers: RXB = R6:R7, RXC = R8:R9, RXD = RA:RB, RXE = RC:RD, RXF = RE:RF.
 - **64KB memory** (0x0000–0xFFFF; `VM_MEM_SIZE = 0xFFFF`). All ops work on registers only — no direct memory-to-memory ops.
 - **2-byte instructions** (big-endian). Four formats: Q (rd + imm), S (rd + rx + ry), T (rd + rx + imm), V (imm12).
-- **16 opcodes**: HLT(0), LDA(1), STA(2), LDI(3), ADD(4), ADC(5), SUB(6), SBC(7), NOT(8), AND(9), SHL(a), SHR(b), JMP(c), JPF(d), JNZ(e), JPC(f). See `ASM.md` for the full instruction table.
+- **16 opcodes**: HLT(0), LDA(1), STA(2), LDI(3), ADD(4), ADC(5), SUB(6), SBC(7), NOT(8), BIT(9), SHL(a), SHR(b), JMP(c), JPF(d), JNZ(e), JPC(f). See `ASM.md` for the full instruction table.
 - **Test flags** (`vm.h`): `TEST_EQ`(1), `TEST_LT`(2), `TEST_GT`(4), `TEST_NOT`(8). Used by JPC. `vm_test()` evaluates them.
 - **Carry flag** (1-bit): ADD/SUB clear it, ADC/SBC use it. `vm_subtract()` propagates borrow.
 - **`vm_get_rx()`**: index 0x0–0xA returns the 8-bit register; 0xB–0xF returns the 16-bit address register (RXB–RXF).
