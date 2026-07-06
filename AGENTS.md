@@ -15,7 +15,7 @@ Unit tests are individual C executables in `tests/` (see `CMakeLists.txt`). Inte
 bash tests/test_integration.sh
 ```
 
-Single executable built from `main.c vm.c vm.h utils.c utils.h asm/asm.c asm/asm.h asm/token.c asm/token.h asm/tree.c asm/tree.h` (see `CMakeLists.txt`; `asm/` is on the include path). Usage:
+Single executable built from `src/main.c src/vm.c src/vm.h src/utils.c src/utils.h src/asm/* src/mm/* src/devices/*` (see `CMakeLists.txt`; `src/asm/`, `src/mm/`, `src/devices/`, and `src/` are on the include path). Usage:
 
 ```
 uVM program.bin                            # load at 0x0000, run from PC=0
@@ -24,7 +24,7 @@ uVM -p 0x100 program.bin                   # set initial PC
 uVM -c file.asm [-o output.bin]            # assemble into binary format
 ```
 
-`main.c` validates load addresses against `VM_MEM_SIZE` and rejects overlapping loads. After the run it prints final VM state via `vm_print_state()`.
+`src/main.c` validates load addresses against `VM_MEM_SIZE` and rejects overlapping loads. After the run it prints final VM state via `vm_print_state()`.
 
 ## Architecture
 
@@ -42,7 +42,10 @@ uVM -c file.asm [-o output.bin]            # assemble into binary format
 ## Directories
 
 - `arduino/` — Arduino port with its own `VM.c`/`VM.h`, console, shift-register I/O
-- `asm/` — assembler sources: `asm.c`/`asm.h` (compile entry point), `token.c`/`token.h` (tokenizer), `tree.c`/`tree.h` (syntax tree types); `asm_compile(input, output)` tokenizes input, parses into syntax tree, resolves symbols, and emits binary output. `tree.md` documents the syntax tree structure.
+- `src/` — main application sources
+  - `src/asm/` — assembler sources: `asm.c`/`asm.h` (compile entry point), `token.c`/`token.h` (tokenizer), `tree.c`/`tree.h` (syntax tree types); `asm_compile(input, output)` tokenizes input, parses into syntax tree, resolves symbols, and emits binary output. `tree.md` documents the syntax tree structure.
+  - `src/mm/` — memory management
+  - `src/devices/` — memory and timer device implementations
 - `programs/` — sample `.asm` sources; assembled `.bin` output is gitignored
 - `tests/` — unit tests (individual C executables) and `test_integration.sh`
 - `pcb/` — KiCad project (uvm.pro)
@@ -54,4 +57,4 @@ See `ASM.md` for the assembly syntax: `[label:] opcode operands ; comment`, regi
 
 ## Host interface (vm.h)
 
-Hooks into the VM via function pointers on the `VM` struct: `readAddr`, `writeAddr`, `error`. The root `main.c` provides a simple memory-backed host. `utils.c`/`utils.h` provides `get_temp_dir()` and `copy_file()` helpers.
+Hooks into the VM via function pointers on the `VM` struct: `readAddr`, `writeAddr`, `error`. `src/main.c` provides a simple memory-backed host. `src/utils.c`/`src/utils.h` provides `get_temp_dir()` and `copy_file()` helpers.

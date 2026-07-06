@@ -42,7 +42,7 @@ Operands
 - `value4` / `value8` / `value12`
   - values beyond what can fit in the destination will result in an error 
   - one of the following
-    - absolute value.
+    - absolute value
       - `0` - decimal
       - `0x0` - hex
       - `0000b` - binary
