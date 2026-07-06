@@ -28,6 +28,8 @@ static void free_operands(ASMProgramInstructionOperand *ops, uint32_t count) {
                    ops[i].type == ASM_OPERAND_LABEL_HIGH ||
                    ops[i].type == ASM_OPERAND_LABEL_LOW) {
             free(ops[i].label);
+        } else if (ops[i].type == ASM_OPERAND_MNEMONIC) {
+            free(ops[i].variable);
         }
     }
     free(ops);

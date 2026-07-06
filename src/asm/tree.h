@@ -122,6 +122,7 @@ typedef enum {
     ASM_OPERAND_LABEL_LOW,
     ASM_OPERAND_LABEL,
     ASM_OPERAND_TEST,
+    ASM_OPERAND_MNEMONIC,
 } ASMProgramInstructionOperandType;
 
 /* ASMProgramInstructionOperand */
