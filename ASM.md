@@ -76,7 +76,7 @@ Operands
 | SUB      | S      | `SUB reg8, reg8, reg8`                             |
 | SBC      | S      | `SBC reg8, reg8, reg8`                             |
 | NOT      | T      | `NOT reg8`                                         |
-| BIT      | T      | `BIT reg8, value4, reg8`                           |
+| BIT      | T      | `BIT reg8, mnemonic, reg8` (AND, OR, XOR, MOD)    |
 | SHL      | T      | `SHL reg8, value4`                                 |
 | SHR      | T      | `SHR reg8, value4`                                 |
 | JMP      | V      | `JMP rel`                                          |
@@ -235,4 +235,17 @@ loop:   ADD     $ACC, $ACC, $INC            ; accumulator += increment
 
 ; Stop VM
         HLT     R0, 0                       ; halt with exit code 0
+```
+
+### BIT mnemonic examples
+
+```asm
+; Bitwise AND: R1 = R1 & R2
+        BIT     R1, AND, R2
+; Bitwise OR: R1 = R1 | R2
+        BIT     R1, OR, R2
+; Bitwise XOR: R1 = R1 ^ R2
+        BIT     R1, XOR, R2
+; Modulo: R1 = R1 % R2
+        BIT     R1, MOD, R2
 ```
