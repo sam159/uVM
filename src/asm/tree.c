@@ -324,6 +324,28 @@ static int parse_test_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstr
     return 1;
 }
 
+static int parse_bit_mnemonic_operand(AsmTokenList *tokens, size_t *pos, ASMProgramInstructionOperand *op) {
+    AsmToken *tok = &tokens->tokens[*pos];
+
+    if (tok->type != ASM_TOKEN_IDENT) {
+        return 0;
+    }
+
+    if (strcmp(tok->value, "AND") != 0 &&
+        strcmp(tok->value, "OR") != 0 &&
+        strcmp(tok->value, "XOR") != 0 &&
+        strcmp(tok->value, "MOD") != 0) {
+        return 0;
+    }
+
+    op->type = ASM_OPERAND_MNEMONIC;
+    op->variable = strdup(tok->value);
+    if (!op->variable) return 0;
+
+    (*pos)++;
+    return 1;
+}
+
 static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "HLT") == 0) { *op = ASM_INST_HLT; return 1; }
     if (strcmp(s, "LDA") == 0) { *op = ASM_INST_LDA; return 1; }
