@@ -76,7 +76,7 @@ Operands
 | SUB      | S      | `SUB reg8, reg8, reg8`                             |
 | SBC      | S      | `SBC reg8, reg8, reg8`                             |
 | NOT      | T      | `NOT reg8`                                         |
-| BIT      | T      | `BIT reg8, mnemonic, reg8` (AND, OR, XOR, MOD)    |
+| BIT      | T      | `BIT reg8, mnemonic, reg8` (AND, OR, XOR, MOD)     |
 | SHL      | T      | `SHL reg8, value4`                                 |
 | SHR      | T      | `SHR reg8, value4`                                 |
 | JMP      | V      | `JMP rel`                                          |
