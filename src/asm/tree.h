@@ -77,7 +77,7 @@ typedef enum {
     ASM_INST_SUB = 6,
     ASM_INST_SBC = 7,
     ASM_INST_NOT = 8,
-    ASM_INST_AND = 9,
+    ASM_INST_BIT = 9,
     ASM_INST_SHL = 0xa,
     ASM_INST_SHR = 0xb,
     ASM_INST_JMP = 0xc,
@@ -122,6 +122,7 @@ typedef enum {
     ASM_OPERAND_LABEL_LOW,
     ASM_OPERAND_LABEL,
     ASM_OPERAND_TEST,
+    ASM_OPERAND_MNEMONIC,
 } ASMProgramInstructionOperandType;
 
 /* ASMProgramInstructionOperand */

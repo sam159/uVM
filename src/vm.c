@@ -222,11 +222,22 @@ bool vm_step(VM *vm) {
             rd = ~rx;
             vm_put_r(vm, inst.rd, rd);
             break;
-        case OP_AND:
-            vm_decode_S(&inst, raw);
+        case OP_BIT:
+            vm_decode_T(&inst, raw);
+            rd = vm_get_r(vm, inst.rd);
             rx = vm_get_r(vm, inst.rx);
-            ry = vm_get_r(vm, inst.ry);
-            rd = rx & ry;
+            switch (inst.imm) {
+                case 0x0: rd = rd & rx; break;
+                case 0x1: rd = rd | rx; break;
+                case 0x2: rd = rd ^ rx; break;
+                case 0x4: rd = (rx != 0) ? (rd % rx) : 0; break;
+                default:
+                    if (vm->error != NULL) {
+                        vm->error(VM_ERR_INVALID_BIT_OP);
+                    }
+                    vm->halted = true;
+                    return false;
+            }
             vm_put_r(vm, inst.rd, rd);
             break;
         case OP_SHL:

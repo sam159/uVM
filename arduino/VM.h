@@ -32,7 +32,7 @@ limitations under the License.
 #define OP_SUB 0x6
 #define OP_SBC 0x7
 #define OP_NOT 0x8
-#define OP_AND 0x9
+#define OP_BIT 0x9
 #define OP_SHL 0xa
 #define OP_SHR 0xb
 #define OP_SYS 0xc

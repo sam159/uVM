@@ -123,7 +123,7 @@ All jumps are in words/instructions.
 | `6` | SUB      | S      | `rd ← rx - ry`                     | 8-bit subtract. Clears carry                                                              |
 | `7` | SBC      | S      | `rd ← rx - ry - carry`             | 8-bit subtract with borrow. Propagates borrow bit-by-bit into carry                       |
 | `8` | NOT      | T      | `rd ← ~rx`                         | Bitwise NOT of `rx`                                                                       |
-| `9` | AND      | S      | `rd ← rx & ry`                     | Bitwise AND of `rx` and `ry`                                                              |
+| `9` | BIT      | T      | `rd ← rd OP rx`                    | Bitwise operation on `rd` using `rx`. OP: 0=AND, 1=OR, 2=XOR, 4=MOD                       |
 | `A` | SHL      | T      | `rd ← rx << imm4`                  | Logical left shift by `imm` bits                                                          |
 | `B` | SHR      | T      | `rd ← rx >> imm4`                  | Logical right shift by `imm` bits                                                         |
 | `C` | JMP      | V      | `PC ← PC + imm12_s_x2`             | Relative jump. Update PC with `imm12_s_x2`                                                |
@@ -171,6 +171,7 @@ Errors are reported via the `error` hook and halt the VM:
 | 2    | `VM_ERR_UNKNOWN_OP`    | Opcode is not recognized (0–F). Redundant, exists for completeness. |
 | 3    | `VM_ERR_OUT_OF_BOUNDS` | Memory access address >= 0x10000.                                   |
 | 4    | `VM_ERR_JUMP_SELF`     | An jump instruction jumped to itself                                |
+| 5    | `VM_ERR_INVALID_BIT_OP`| BIT instruction has invalid operation code (not 0, 1, 2, or 4).     |
 
 ## Execution Model
 
@@ -181,17 +182,6 @@ Errors are reported via the `error` hook and halt the VM:
 5. The main loop calls `vm_step()` repeatedly until `vm->halted` is true.
 
 ## TODO
-
-Instruction changes
-- Replace `AND` instruction with `BIT` for bitwise operation, not having `OR` is too much of a limitation
-  - change to T format
-  - imm4 used to determine bitwise op on rd and rx
-  - rd is modified by value in rx
-  - operations
-    - `AND`
-    - `OR`
-    - `XOR`
-    - `MOD`
 
 ASM
 - allow variables in STA/LDA address offset
