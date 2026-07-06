@@ -20,7 +20,7 @@ int main(void) {
     asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "BIT", 1, 1));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R1", 1, 5));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 7));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_IDENT, "OR", 1, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_IDENT, "AND", 1, 9));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 12));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R2", 1, 14));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 14));
@@ -69,8 +69,8 @@ int main(void) {
     fread(buf, 1, 2, f);
     fclose(f);
 
-    if (buf[0] != 0x91 || buf[1] != 0x21) {
-        printf("FAIL: BIT encoding expected 0x9121, got 0x%02X%02X\n", buf[0], buf[1]);
+    if (buf[0] != 0x91 || buf[1] != 0x20) {
+        printf("FAIL: BIT encoding expected 0x9120, got 0x%02X%02X\n", buf[0], buf[1]);
         asm_free_program(prog);
         asm_token_list_free(tokens);
         return 1;
