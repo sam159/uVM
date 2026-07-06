@@ -171,6 +171,7 @@ Errors are reported via the `error` hook and halt the VM:
 | 2    | `VM_ERR_UNKNOWN_OP`    | Opcode is not recognized (0–F). Redundant, exists for completeness. |
 | 3    | `VM_ERR_OUT_OF_BOUNDS` | Memory access address >= 0x10000.                                   |
 | 4    | `VM_ERR_JUMP_SELF`     | An jump instruction jumped to itself                                |
+| 5    | `VM_ERR_INVALID_BIT_OP`| BIT instruction has invalid operation code (not 0, 1, 2, or 4).     |
 
 ## Execution Model
 

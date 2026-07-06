@@ -231,7 +231,12 @@ bool vm_step(VM *vm) {
                 case 0x1: rd = rd | rx; break;
                 case 0x2: rd = rd ^ rx; break;
                 case 0x4: rd = (rx != 0) ? (rd % rx) : 0; break;
-                default: break;
+                default:
+                    if (vm->error != NULL) {
+                        vm->error(VM_ERR_INVALID_BIT_OP);
+                    }
+                    vm->halted = true;
+                    return false;
             }
             vm_put_r(vm, inst.rd, rd);
             break;

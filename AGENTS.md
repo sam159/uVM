@@ -36,7 +36,7 @@ uVM -c file.asm [-o output.bin]            # assemble into binary format
 - **Test flags** (`vm.h`): `TEST_EQ`(1), `TEST_LT`(2), `TEST_GT`(4), `TEST_NOT`(8). Used by JPC. `vm_test()` evaluates them.
 - **Carry flag** (1-bit): ADD/SUB clear it, ADC/SBC use it. `vm_subtract()` propagates borrow.
 - **`vm_get_rx()`**: index 0x0–0xA returns the 8-bit register; 0xB–0xF returns the 16-bit address register (RXB–RXF).
-- **Errors** (constants in `vm.h`): `VM_ERR_MISALIGN`(1), `VM_ERR_UNKNOWN_OP`(2), `VM_ERR_OUT_OF_BOUNDS`(3), `VM_ERR_JUMP_SELF`(4). All halt the VM via the `error` hook.
+- **Errors** (constants in `vm.h`): `VM_ERR_MISALIGN`(1), `VM_ERR_UNKNOWN_OP`(2), `VM_ERR_OUT_OF_BOUNDS`(3), `VM_ERR_JUMP_SELF`(4), `VM_ERR_INVALID_BIT_OP`(5). All halt the VM via the `error` hook.
 - `vm_step()` executes one instruction. Main loop calls it until `vm->halted`. Exit code in `vm->haltCode` (uint16_t).
 
 ## Directories

@@ -49,6 +49,7 @@ limitations under the License.
 #define VM_ERR_UNKNOWN_OP 0x2
 #define VM_ERR_OUT_OF_BOUNDS 0x3
 #define VM_ERR_JUMP_SELF 0x4
+#define VM_ERR_INVALID_BIT_OP 0x5
 
 #ifdef __cplusplus
 extern "C" {
