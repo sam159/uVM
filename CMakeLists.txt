@@ -91,3 +91,6 @@ add_test(NAME test_timer_device COMMAND test_timer_device)
 add_executable(test_bit_vm tests/test_bit_vm.c src/vm.c)
 target_include_directories(test_bit_vm PRIVATE src)
 add_test(NAME test_bit_vm COMMAND test_bit_vm)
+
+add_executable(test_bit_asm tests/test_bit_asm.c ${ASM_SOURCES})
+target_include_directories(test_bit_asm PRIVATE src/asm)

@@ -332,7 +332,7 @@ static int opcode_from_string(const char *s, ASMProgramInstructionType *op) {
     if (strcmp(s, "SUB") == 0) { *op = ASM_INST_SUB; return 1; }
     if (strcmp(s, "SBC") == 0) { *op = ASM_INST_SBC; return 1; }
     if (strcmp(s, "NOT") == 0) { *op = ASM_INST_NOT; return 1; }
-    if (strcmp(s, "AND") == 0) { *op = ASM_INST_AND; return 1; }
+    if (strcmp(s, "BIT") == 0) { *op = ASM_INST_BIT; return 1; }
     if (strcmp(s, "SHL") == 0) { *op = ASM_INST_SHL; return 1; }
     if (strcmp(s, "SHR") == 0) { *op = ASM_INST_SHR; return 1; }
     if (strcmp(s, "JMP") == 0) { *op = ASM_INST_JMP; return 1; }
@@ -546,6 +546,40 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
 
         if (!parse_test_operand(tokens, pos, &(*operands)[1])) {
             parse_error(filename, line, tokens->tokens[*pos].col, "expected test");
+            free_operands(*operands, 1); *operands = NULL;
+            return 0;
+        }
+
+        if (!expect_comma(tokens, pos)) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
+            free_operands(*operands, 2); *operands = NULL;
+            return 0;
+        }
+
+        if (!parse_reg8_operand(tokens, pos, &(*operands)[2])) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
+            free_operands(*operands, 2); *operands = NULL;
+            return 0;
+        }
+        *operand_count = 3;
+    } else if (opcode == ASM_INST_BIT) {
+        *operands = malloc(3 * sizeof(ASMProgramInstructionOperand));
+        if (!*operands) return 0;
+
+        if (!parse_reg8_operand(tokens, pos, &(*operands)[0])) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected reg8");
+            free_operands(*operands, 0); *operands = NULL;
+            return 0;
+        }
+
+        if (!expect_comma(tokens, pos)) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected ','");
+            free_operands(*operands, 1); *operands = NULL;
+            return 0;
+        }
+
+        if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected value4");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -949,14 +983,14 @@ ASMProgram *asm_parse(const char *filename, AsmTokenList *tokens) {
                     goto fail;
                 }
             } else if (opcode == ASM_INST_ADD || opcode == ASM_INST_ADC || opcode == ASM_INST_SUB ||
-                       opcode == ASM_INST_SBC || opcode == ASM_INST_AND) {
+                       opcode == ASM_INST_SBC) {
                 if (!parse_operands_s(tokens, &pos, opcode, &operands, &operand_count,
                                       filename, start_line)) {
                     goto fail;
                 }
             } else if (opcode == ASM_INST_LDA || opcode == ASM_INST_STA || opcode == ASM_INST_LDI ||
                        opcode == ASM_INST_NOT || opcode == ASM_INST_SHL || opcode == ASM_INST_SHR ||
-                       opcode == ASM_INST_JPC) {
+                       opcode == ASM_INST_JPC || opcode == ASM_INST_BIT) {
                 if (!parse_operands_t(tokens, &pos, opcode, &operands, &operand_count,
                                       filename, start_line)) {
                     goto fail;
@@ -1385,8 +1419,7 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
         case ASM_INST_ADD:
         case ASM_INST_ADC:
         case ASM_INST_SUB:
-        case ASM_INST_SBC:
-        case ASM_INST_AND: {
+        case ASM_INST_SBC: {
             const uint8_t rd = inst->operands[0].reg8;
             const uint8_t rx = inst->operands[1].reg8;
             const uint8_t ry = inst->operands[2].reg8;
@@ -1454,6 +1487,22 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
             if (inst->operands[1].test.negated) test_bits |= 0x8;
             const uint8_t imm = (uint8_t)test_bits;
             *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | imm;
+            break;
+        }
+        case ASM_INST_BIT: {
+            const uint8_t rd = inst->operands[0].reg8;
+            const uint8_t rx = inst->operands[2].reg8;
+            uint16_t val;
+            if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
+                val = inst->operands[1].value16;
+            } else {
+                val = inst->operands[1].value8;
+            }
+            if (val > 15) {
+                fprintf(stderr, "error: BIT operation %u exceeds 4 bits\n", val);
+                return false;
+            }
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | (uint8_t)val;
             break;
         }
 

@@ -7,7 +7,7 @@
 
 static const char *opcode_list[] = {
     "HLT", "LDA", "STA", "LDI", "ADD", "ADC", "SUB", "SBC",
-    "NOT", "AND", "SHL", "SHR", "JMP", "JPF", "JNZ", "JPC", NULL
+    "NOT", "BIT", "SHL", "SHR", "JMP", "JPF", "JNZ", "JPC", NULL
 };
 
 static const char *test_list[] = {
