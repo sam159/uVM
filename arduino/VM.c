@@ -193,11 +193,17 @@ void vm_step(VM *vm) {
             vm_decode_T(&inst, raw);
             rd = ~rx;
             break;
-        case OP_AND:
-            vm_decode_S(&inst, raw);
+        case OP_BIT:
+            vm_decode_T(&inst, raw);
+            rd = vm_get_r(vm, inst.rd);
             rx = vm_get_r(vm, inst.rx);
-            ry = vm_get_r(vm, inst.ry);
-            rd = rx & ry;
+            switch (inst.imm) {
+                case 0x0: rd = rd & rx; break;
+                case 0x1: rd = rd | rx; break;
+                case 0x2: rd = rd ^ rx; break;
+                case 0x4: rd = (rx != 0) ? (rd % rx) : 0; break;
+                default: break;
+            }
             break;
         case OP_SHL:
             vm_decode_T(&inst, raw);

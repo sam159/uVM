@@ -94,3 +94,4 @@ add_test(NAME test_bit_vm COMMAND test_bit_vm)
 
 add_executable(test_bit_asm tests/test_bit_asm.c ${ASM_SOURCES})
 target_include_directories(test_bit_asm PRIVATE src/asm)
+add_test(NAME test_bit_asm COMMAND test_bit_asm)
