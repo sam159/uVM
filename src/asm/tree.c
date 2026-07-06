@@ -1516,26 +1516,17 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
         case ASM_INST_BIT: {
             const uint8_t rd = inst->operands[0].reg8;
             const uint8_t rx = inst->operands[2].reg8;
-            uint16_t val = 0;
-            if (inst->operands[1].type == ASM_OPERAND_MNEMONIC) {
-                if (strcmp(inst->operands[1].variable, "AND") == 0) val = 0;
-                else if (strcmp(inst->operands[1].variable, "OR") == 0) val = 1;
-                else if (strcmp(inst->operands[1].variable, "XOR") == 0) val = 2;
-                else if (strcmp(inst->operands[1].variable, "MOD") == 0) val = 3;
-                else {
-                    fprintf(stderr, "error: BIT invalid mnemonic %s\n", inst->operands[1].variable);
-                    return false;
-                }
-            } else if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
-                val = inst->operands[1].value16;
-            } else {
-                val = inst->operands[1].value8;
-            }
-            if (val > 15) {
-                fprintf(stderr, "error: BIT operation %u exceeds 4 bits\n", val);
+            const char *mnemonic = inst->operands[1].variable;
+            uint8_t imm = 0;
+            if (strcmp(mnemonic, "AND") == 0) imm = 0x0;
+            else if (strcmp(mnemonic, "OR") == 0) imm = 0x1;
+            else if (strcmp(mnemonic, "XOR") == 0) imm = 0x2;
+            else if (strcmp(mnemonic, "MOD") == 0) imm = 0x4;
+            else {
+                fprintf(stderr, "error: unknown BIT mnemonic '%s'\n", mnemonic);
                 return false;
             }
-            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | (uint8_t)val;
+            *encoded = (uint16_t)op << 12 | (uint16_t)rd << 8 | (uint16_t)rx << 4 | imm;
             break;
         }
 
