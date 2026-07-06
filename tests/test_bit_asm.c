@@ -20,9 +20,9 @@ int main(void) {
     asm_token_list_append(tokens, make_token(ASM_TOKEN_OPCODE, "BIT", 1, 1));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R1", 1, 5));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 7));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_NUMBER, "1", 1, 9));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 10));
-    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R2", 1, 12));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_IDENT, "OR", 1, 9));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_SYMBOL, ",", 1, 12));
+    asm_token_list_append(tokens, make_token(ASM_TOKEN_REGISTER, "R2", 1, 14));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_NEWLINE, "", 1, 14));
     asm_token_list_append(tokens, make_token(ASM_TOKEN_EOF, "", 2, 1));
 

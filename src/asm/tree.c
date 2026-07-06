@@ -602,8 +602,8 @@ static int parse_operands_t(AsmTokenList *tokens, size_t *pos, ASMProgramInstruc
             return 0;
         }
 
-        if (!parse_value_operand(tokens, pos, &(*operands)[1])) {
-            parse_error(filename, line, tokens->tokens[*pos].col, "expected value4");
+        if (!parse_bit_mnemonic_operand(tokens, pos, &(*operands)[1])) {
+            parse_error(filename, line, tokens->tokens[*pos].col, "expected AND, OR, XOR, or MOD");
             free_operands(*operands, 1); *operands = NULL;
             return 0;
         }
@@ -1516,8 +1516,17 @@ static bool emit_instruction(uint16_t *encoded, const ASMProgramLine *line) {
         case ASM_INST_BIT: {
             const uint8_t rd = inst->operands[0].reg8;
             const uint8_t rx = inst->operands[2].reg8;
-            uint16_t val;
-            if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
+            uint16_t val = 0;
+            if (inst->operands[1].type == ASM_OPERAND_MNEMONIC) {
+                if (strcmp(inst->operands[1].variable, "AND") == 0) val = 0;
+                else if (strcmp(inst->operands[1].variable, "OR") == 0) val = 1;
+                else if (strcmp(inst->operands[1].variable, "XOR") == 0) val = 2;
+                else if (strcmp(inst->operands[1].variable, "MOD") == 0) val = 3;
+                else {
+                    fprintf(stderr, "error: BIT invalid mnemonic %s\n", inst->operands[1].variable);
+                    return false;
+                }
+            } else if (inst->operands[1].type == ASM_OPERAND_VALUE16) {
                 val = inst->operands[1].value16;
             } else {
                 val = inst->operands[1].value8;
