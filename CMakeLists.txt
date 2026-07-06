@@ -87,3 +87,7 @@ add_test(NAME test_mm COMMAND test_mm)
 add_executable(test_timer_device tests/test_timer_device.c src/devices/timer.c src/mm/mm.c)
 target_include_directories(test_timer_device PRIVATE src/mm src/devices)
 add_test(NAME test_timer_device COMMAND test_timer_device)
+
+add_executable(test_bit_vm tests/test_bit_vm.c src/vm.c)
+target_include_directories(test_bit_vm PRIVATE src)
+add_test(NAME test_bit_vm COMMAND test_bit_vm)
