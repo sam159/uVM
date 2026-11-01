@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <poll.h>
 #include "mm.h"
 #include "serial.h"
 
@@ -30,11 +31,49 @@ int main(void) {
 
     CHECK(dev.read(dev.ctx, 0x1) == 0x00, "DATA read with empty buffer returns 0");
 
+    /* A buffered byte becomes visible and is consumed once */
+    if (write(in_pipe[1], "A", 1) != 1) { perror("write"); return 1; }
+    status = dev.read(dev.ctx, 0x0);
+    CHECK((status & SERIAL_STATUS_RX_READY) && !(status & SERIAL_STATUS_RX_EMPTY),
+          "RX ready after input");
+    CHECK(dev.read(dev.ctx, 0x1) == 'A', "DATA returns buffered byte");
+    status = dev.read(dev.ctx, 0x0);
+    CHECK(!(status & SERIAL_STATUS_RX_READY) && (status & SERIAL_STATUS_RX_EMPTY),
+          "RX empty after drain");
+    CHECK(dev.read(dev.ctx, 0x1) == 0x00, "DATA returns 0 when drained");
+
+    /* FIFO order */
+    if (write(in_pipe[1], "XYZ", 3) != 3) { perror("write"); return 1; }
+    CHECK(dev.read(dev.ctx, 0x1) == 'X' &&
+          dev.read(dev.ctx, 0x1) == 'Y' &&
+          dev.read(dev.ctx, 0x1) == 'Z', "RX preserves order");
+    CHECK(dev.read(dev.ctx, 0x1) == 0x00 &&
+          (dev.read(dev.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY), "RX empty after FIFO drain");
+
+    /* A burst larger than the buffer drains in order through a wrap */
+    uint8_t burst[SERIAL_RX_CAPACITY + 8];
+    for (int i = 0; i < (int)sizeof burst; i++) burst[i] = (uint8_t)i;
+    if (write(in_pipe[1], burst, sizeof burst) != (ssize_t)sizeof burst) { perror("write"); return 1; }
+    bool ordered = true;
+    for (int i = 0; i < (int)sizeof burst; i++) {
+        if (dev.read(dev.ctx, 0x1) != burst[i]) ordered = false;
+    }
+    CHECK(ordered, "burst longer than buffer drains in order");
+    CHECK(dev.read(dev.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "RX empty after burst drain");
+
+    /* An unusable input fd is treated as no input */
+    MMDevice bad = serial_device_create(0x0010, -1, out_pipe[1]);
+    CHECK(bad.read(bad.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "invalid input fd reports empty");
+    serial_device_destroy(&bad);
+
+    /* EOF leaves the receive side empty */
+    close(in_pipe[1]);
+    CHECK(dev.read(dev.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "EOF leaves RX empty");
+
     serial_device_destroy(&dev);
     CHECK(dev.ctx == NULL, "destroy clears context");
 
     close(in_pipe[0]);
-    close(in_pipe[1]);
     close(out_pipe[0]);
     close(out_pipe[1]);
 
