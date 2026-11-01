@@ -75,7 +75,7 @@ Unused bits always read zero, writes have no effect.
 |        |        |        |        | R/O                 | R/O      | R/0             | R/O      |
 
 - Bit 4 is set while there is data in the buffer being sent to allow loops to wait for it to empty
-- Bit 2 is clear when the receive buffer is empty again to allow looping until empty
+- Bit 2 is set when the receive buffer is empty, to allow looping until empty
 
 ### Disk device
 
