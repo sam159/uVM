@@ -9,7 +9,7 @@ if (TIMER_DEBUG)
     add_compile_definitions(TIMER_DEBUG)
 endif()
 
-add_executable(uVM src/main.c src/vm.c src/vm.h src/utils.c src/utils.h src/asm/asm.c src/asm/asm.h src/asm/token.c src/asm/token.h src/asm/tree.c src/asm/tree.h src/mm/mm.c src/mm/mm.h src/devices/memory.c src/devices/memory.h src/devices/timer.c src/devices/timer.h)
+add_executable(uVM src/main.c src/vm.c src/vm.h src/utils.c src/utils.h src/asm/asm.c src/asm/asm.h src/asm/token.c src/asm/token.h src/asm/tree.c src/asm/tree.h src/mm/mm.c src/mm/mm.h src/devices/memory.c src/devices/memory.h src/devices/timer.c src/devices/timer.h src/devices/serial.c src/devices/serial.h)
 target_include_directories(uVM PRIVATE src/asm src/mm src/devices src)
 
 # Test infrastructure
@@ -93,6 +93,10 @@ add_test(NAME test_mm COMMAND test_mm)
 add_executable(test_timer_device tests/test_timer_device.c src/devices/timer.c src/mm/mm.c)
 target_include_directories(test_timer_device PRIVATE src/mm src/devices)
 add_test(NAME test_timer_device COMMAND test_timer_device)
+
+add_executable(test_serial_device tests/test_serial_device.c src/devices/serial.c src/mm/mm.c)
+target_include_directories(test_serial_device PRIVATE src/mm src/devices)
+add_test(NAME test_serial_device COMMAND test_serial_device)
 
 add_executable(test_bit_vm tests/test_bit_vm.c src/vm.c)
 target_include_directories(test_bit_vm PRIVATE src)
