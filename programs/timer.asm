@@ -13,6 +13,9 @@ $R_CTRL = R1
 $R_DELAY = R2
 $R_TMP = R3
 
+$V_1000h = 0x3
+$V_1000l = 0xE8
+
 :origin 0x100
 
 ; test us delay
@@ -22,9 +25,9 @@ start:  LDI R4, 0                           ; load address of timer into RXA
         LDI $R_CTRL, $TIMER_RESET           ; set control flags to us, reset on finsh
         STA [RXA + 0], $R_CTRL
 
-        LDI $R_DELAY, 0x3                   ; load 1000us delay into timer
+        LDI $R_DELAY, $V_1000h              ; load 1000 delay into timer
         STA [RXA + 1], $R_DELAY
-        LDI $R_DELAY, 0xE8
+        LDI $R_DELAY, $V_1000l
         STA [RXA + 2], $R_DELAY
 
         LDA $R_CTRL, [RXA + 0]              ; update control flag to set start
@@ -32,7 +35,7 @@ start:  LDI R4, 0                           ; load address of timer into RXA
         BIT $R_CTRL, OR, $R_TMP
         STA [RXA + 0], $R_CTRL              ; program should pause for 1ms
 
-        LDI $R_DELAY, 0x0                   ; load 1ms delay into timer
+        LDI $R_DELAY, 0                      ; load 1 delay into timer
         STA [RXA + 1], $R_DELAY
         LDI $R_DELAY, 0x1
         STA [RXA + 2], $R_DELAY

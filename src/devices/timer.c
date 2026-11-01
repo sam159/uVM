@@ -1,4 +1,6 @@
 #include "timer.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -25,8 +27,14 @@ static void timer_write(void *ctx, uint16_t addr, uint8_t data) {
             if (data & CTRL_START) {
                 const uint16_t duration = (uint16_t)t->timer_h << 8 | t->timer_l;
                 if (t->control & CTRL_MILLIS) {
+#ifdef TIMER_DEBUG
+                    printf("Sleeping for %d milliseconds\n", duration);
+#endif
                     usleep((useconds_t)duration * 1000);
                 } else {
+#ifdef TIMER_DEBUG
+                    printf("Sleeping for %d microseconds\n", duration);
+#endif
                     usleep(duration);
                 }
                 if (t->control & CTRL_RESET) {

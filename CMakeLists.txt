@@ -3,6 +3,12 @@ project(uVM C)
 
 set(CMAKE_C_STANDARD 11)
 
+option(TIMER_DEBUG "Enable timer debug output" OFF)
+
+if (TIMER_DEBUG)
+    add_compile_definitions(TIMER_DEBUG)
+endif()
+
 add_executable(uVM src/main.c src/vm.c src/vm.h src/utils.c src/utils.h src/asm/asm.c src/asm/asm.h src/asm/token.c src/asm/token.h src/asm/tree.c src/asm/tree.h src/mm/mm.c src/mm/mm.h src/devices/memory.c src/devices/memory.h src/devices/timer.c src/devices/timer.h)
 target_include_directories(uVM PRIVATE src/asm src/mm src/devices src)
 
