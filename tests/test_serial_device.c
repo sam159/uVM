@@ -66,6 +66,13 @@ int main(void) {
     CHECK(bad.read(bad.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "invalid input fd reports empty");
     serial_device_destroy(&bad);
 
+    /* A closed but valid fd makes poll/read fail; that must count as no data */
+    int ghost = dup(in_pipe[0]);
+    close(ghost);
+    MMDevice closed = serial_device_create(0x0010, ghost, out_pipe[1]);
+    CHECK(closed.read(closed.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "closed input fd reports empty");
+    serial_device_destroy(&closed);
+
     /* EOF leaves the receive side empty */
     close(in_pipe[1]);
     CHECK(dev.read(dev.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "EOF leaves RX empty");
