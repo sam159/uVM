@@ -70,6 +70,22 @@ int main(void) {
     close(in_pipe[1]);
     CHECK(dev.read(dev.ctx, 0x0) & SERIAL_STATUS_RX_EMPTY, "EOF leaves RX empty");
 
+    /* DATA writes reach the output pipe unmodified */
+    struct pollfd out_poll = { .fd = out_pipe[0], .events = POLLIN };
+    dev.write(dev.ctx, 0x1, 'B');
+    dev.write(dev.ctx, 0x1, 0x00);
+    int out_ready = poll(&out_poll, 1, 1000);
+    CHECK(out_ready == 1, "DATA write reaches output");
+    if (out_ready == 1) {
+        uint8_t out[2];
+        CHECK(read(out_pipe[0], out, 1) == 1 && out[0] == 'B', "first output byte correct");
+        CHECK(read(out_pipe[0], out, 1) == 1 && out[0] == 0x00, "output byte not modified");
+    }
+
+    /* STATUS writes emit nothing */
+    dev.write(dev.ctx, 0x0, 0xFF);
+    CHECK(poll(&out_poll, 1, 0) == 0, "STATUS writes emit nothing");
+
     serial_device_destroy(&dev);
     CHECK(dev.ctx == NULL, "destroy clears context");
 
