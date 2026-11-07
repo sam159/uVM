@@ -53,7 +53,7 @@ uVM -c file.asm [-o output.bin]            # assemble into binary format
 
 ## Assembly format
 
-See `ASM.md` for the assembly syntax: `[label:] opcode operands ; comment`, registers `R0`–`RF` / `RXB`–`RXF`, the `:origin` (a.k.a. `:addr`) directive, the `:data` directive for literal data (DB/DW/DX/STZ/STL), `$alias` definitions, and how Q/S/T/V formats map to assembly operands.
+See `ASM.md` for the assembly syntax: `[label:] opcode operands ; comment`, registers `R0`–`RF` / `RXA`–`RXF`, the `:origin` (a.k.a. `:addr`) directive, the `:data` directive for literal data (DB/DW/DX/STZ/STL), `$alias` definitions, and how Q/S/T/V formats map to assembly operands.
 
 ## Host interface (vm.h)
 

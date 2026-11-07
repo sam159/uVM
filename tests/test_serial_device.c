@@ -24,7 +24,6 @@ int main(void) {
     CHECK(status & SERIAL_STATUS_RX_EMPTY, "initial RX buffer reported empty");
     CHECK(!(status & SERIAL_STATUS_RX_READY), "initial RX not ready");
     CHECK(status & SERIAL_STATUS_TX_READY, "TX always ready");
-    CHECK(!(status & SERIAL_STATUS_TX_NOT_EMPTY), "TX never pending");
 
     dev.write(dev.ctx, 0x0, 0xFF);
     CHECK(dev.read(dev.ctx, 0x0) == status, "STATUS writes ignored");

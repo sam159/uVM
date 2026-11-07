@@ -44,7 +44,7 @@ static uint8_t serial_read(void *ctx, uint16_t addr) {
 }
 
 static void serial_write(void *ctx, uint16_t addr, uint8_t data) {
-    SerialDevice *s = ctx;
+    const SerialDevice *s = ctx;
     if (addr != 0x1) return;
     while (write(s->out_fd, &data, 1) < 0 && errno == EINTR) {
     }

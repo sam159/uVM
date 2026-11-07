@@ -8,7 +8,6 @@
 #define SERIAL_STATUS_RX_READY     0x01
 #define SERIAL_STATUS_RX_EMPTY     0x02
 #define SERIAL_STATUS_TX_READY     0x04
-#define SERIAL_STATUS_TX_NOT_EMPTY 0x08
 
 typedef struct SerialDevice_t {
     int     in_fd;

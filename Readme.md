@@ -40,9 +40,8 @@ R0: 00 (000) R4: 02 (002) R8: 00 (000) RC: 00 (000)
 R1: 01 (001) R5: 00 (000) R9: 00 (000) RD: 00 (000) 
 R2: 64 (100) R6: 00 (000) RA: 00 (000) RE: 00 (000) 
 R3: 00 (000) R7: 00 (000) RB: 00 (000) RF: 00 (000) 
-RXB: 00 (00000) RXE: 00 (00000)
-RXC: 00 (00000) RXF: 00 (00000)
-RXD: 00 (00000)
+RXA: 200 (00512) RXB: 00 (00000) RXE: 00 (00000)
+RXC: 00 (00000) RXF: 00 (00000) RXD: 00 (00000)
 ```
 
 ## VM
@@ -51,7 +50,7 @@ RXD: 00 (00000)
 
 - **8-bit registers** 16 registers (`R0`–`RF`), 8-bit each.
 - **16-bit registers** 16 registers (`RX0`-`RXF`) mapped over the 8-bit registers.
-  - `RX0`-`RX9` with low bytes mapped to
+  - `RX0`-`RX9` mirroring `R0`-`RF` extended to 16-bits
   - `RXA`-`RXF` mapped to pairs of 8-bit registers
 - **R0/RX0** always reads as 0. Writes to R0 are a no-op.
 - **PC** (program counter), 16-bit. Increments by 2 each instruction fetch. Must be word-aligned.
@@ -113,12 +112,12 @@ Operand terms
 All jumps are in words/instructions. 
 
 | Op  | Mnemonic | Format | Operation                          | Description                                                                               |
-|-----|----------|--------|------------------------------------|-------------------------------------------------------------------------------------------|
-| `0` | HLT      | V      | `exitcode ← imm12`                 | Halt the VM. Sets `halted = true`, and the exit code to `imm12`                           |
+|-----|----------|--------|------------------------------------|-------------------------------------------------------------------------------------------------|
+| `0` | HLT      | Q      | `exitcode ← rd + imm8`                 | Halt the VM. Sets `halted = true`, and the exit code to `rd` + `imm8`                           |
 | `1` | LDA      | T      | `rd ← [rdx + imm4]`                | Load byte from memory at 16-bit address `rdx + imm4` into `rd`                            |
 | `2` | STA      | T      | `[rdx + imm4] ← rx`                | Store `rx` to memory at 16-bit address `rdx + imm4`                                       |
 | `3` | LDI      | Q      | `rd ← imm8`                        | Load `imm8` into `rd`                                                                     |
-| `4` | ADD      | S      | `rd ← rx + ry`                     | 8-bit add. Clears carry                                                                   |
+| `4` | ADD      | S      | `rd ← rx + ry`                     | 8-bit add. Sets carry on overflow                                                                   |
 | `5` | ADC      | S      | `rd ← rx + ry + carry`             | 8-bit add with carry. Sets carry on overflow                                              |
 | `6` | SUB      | S      | `rd ← rx - ry`                     | 8-bit subtract. Clears carry                                                              |
 | `7` | SBC      | S      | `rd ← rx - ry - carry`             | 8-bit subtract with borrow. Propagates borrow bit-by-bit into carry                       |
@@ -189,5 +188,4 @@ ASM
 
 VM
 - Add device support
-  - Console
   - File

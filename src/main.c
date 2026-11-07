@@ -136,10 +136,11 @@ static void vm_print_state(VM *vm) {
         printf("\n");
     }
 
+    printf("RX%X: %02X (%05d) ", 0xA, vm_get_rx(vm, 0xA), vm_get_rx(vm, 0xA));
     printf("RX%X: %02X (%05d) ", 0xB, vm_get_rx(vm, 0xB), vm_get_rx(vm, 0xB));
     printf("RX%X: %02X (%05d)\n", 0xE, vm_get_rx(vm, 0xE), vm_get_rx(vm, 0xE));
     printf("RX%X: %02X (%05d) ", 0xC, vm_get_rx(vm, 0xC), vm_get_rx(vm, 0xC));
-    printf("RX%X: %02X (%05d)\n", 0xF, vm_get_rx(vm, 0xF), vm_get_rx(vm, 0xF));
+    printf("RX%X: %02X (%05d) ", 0xF, vm_get_rx(vm, 0xF), vm_get_rx(vm, 0xF));
     printf("RX%X: %02X (%05d)\n", 0xD, vm_get_rx(vm, 0xD), vm_get_rx(vm, 0xD));
 }
 
