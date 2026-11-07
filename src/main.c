@@ -4,16 +4,19 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include "vm.h"
 #include "asm.h"
 #include "mm.h"
 #include "memory.h"
 #include "timer.h"
+#include "serial.h"
 
 static MMManager *manager;
 static MMDevice mem_dev;
 static MMDevice timer_dev;
+static MMDevice serial_dev;
 
 static uint16_t load_addrs[32];
 static long load_sizes[32];
@@ -133,10 +136,11 @@ static void vm_print_state(VM *vm) {
         printf("\n");
     }
 
+    printf("RX%X: %02X (%05d) ", 0xA, vm_get_rx(vm, 0xA), vm_get_rx(vm, 0xA));
     printf("RX%X: %02X (%05d) ", 0xB, vm_get_rx(vm, 0xB), vm_get_rx(vm, 0xB));
     printf("RX%X: %02X (%05d)\n", 0xE, vm_get_rx(vm, 0xE), vm_get_rx(vm, 0xE));
     printf("RX%X: %02X (%05d) ", 0xC, vm_get_rx(vm, 0xC), vm_get_rx(vm, 0xC));
-    printf("RX%X: %02X (%05d)\n", 0xF, vm_get_rx(vm, 0xF), vm_get_rx(vm, 0xF));
+    printf("RX%X: %02X (%05d) ", 0xF, vm_get_rx(vm, 0xF), vm_get_rx(vm, 0xF));
     printf("RX%X: %02X (%05d)\n", 0xD, vm_get_rx(vm, 0xD), vm_get_rx(vm, 0xD));
 }
 
@@ -146,6 +150,8 @@ int main(int argc, char *argv[]) {
     manager = mm_create();
     mem_dev = memory_device_rw(0x0000, VM_MEM_SIZE);
     mm_register(manager, mem_dev);
+    serial_dev = serial_device_create(0x0010, STDIN_FILENO, STDOUT_FILENO);
+    mm_register(manager, serial_dev);
     timer_dev = timer_device_create(0x0020);
     mm_register(manager, timer_dev);
 
@@ -216,6 +222,7 @@ int main(int argc, char *argv[]) {
         bool compileSuccess = asm_compile(compile_input, compile_output);
 
         memory_device_destroy(&mem_dev);
+        serial_device_destroy(&serial_dev);
         timer_device_destroy(&timer_dev);
         mm_free(manager);
         free_vm(vm);
@@ -238,6 +245,7 @@ int main(int argc, char *argv[]) {
 
     vm_print_state(vm);
     memory_device_destroy(&mem_dev);
+    serial_device_destroy(&serial_dev);
     timer_device_destroy(&timer_dev);
     mm_free(manager);
     free_vm(vm);

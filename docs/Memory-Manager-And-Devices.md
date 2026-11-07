@@ -56,7 +56,7 @@ Unused bits always read zero, writes have no effect.
 - If bit two is set, `TIMER_H` and `TIMER_L` are set to zero after the timer has run.
 - If bit three is set, the timer is measured in milliseconds instead of microseconds.
 
-### Serial Device
+### Serial Device (implemented)
 
 This is a simple UART style serial interface with a small internal buffer. Address is offset by its location in the manager.
 
@@ -69,13 +69,15 @@ This is a simple UART style serial interface with a small internal buffer. Addre
 
 Unused bits always read zero, writes have no effect.
 
-| 8      | 7      | 6      | 5      | 4                   | 3        | 2               | 1        |
-|--------|--------|--------|--------|---------------------|----------|-----------------|----------|
-| Unused | Unused | Unused | Unused | TX Buffer Not Empty | TX Ready | RX Buffer Empty | RX Ready |
-|        |        |        |        | R/O                 | R/O      | R/0             | R/O      |
+| 8      | 7      | 6      | 5      | 4      | 3        | 2               | 1        |
+|--------|--------|--------|--------|--------|----------|-----------------|----------|
+| Unused | Unused | Unused | Unused | Unused | TX Ready | RX Buffer Empty | RX Ready |
+|        |        |        |        |        | R/O      | R/O             | R/O      |
 
-- Bit 4 is set while there is data in the buffer being sent to allow loops to wait for it to empty
-- Bit 2 is clear when the receive buffer is empty again to allow looping until empty
+- Bit 2 is set when the receive buffer is empty, to allow looping until empty
+
+Reads of `STATUS` and `DATA` poll stdin without blocking and buffer incoming bytes. `RX Ready` is set
+while the buffer holds data and clears when it empties, including at end of input.
 
 ### Disk device
 

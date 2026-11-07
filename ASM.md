@@ -64,12 +64,17 @@ Operands
 - `reg16` - a 16-bit register - `RxZ` or `RX0`-`RXF` or variable
 - `test` - one of, optionally preceded by a `~` to negate it
   - `EQ` / `LT` / `LTE` / `GT` / `GTE`
+- `bitop`
+  - `AND`
+  - `OR`
+  - `XOR`
+  - `MOD`
 
 | Mnemonic | Format | Operands                                           |
 |----------|--------|----------------------------------------------------|
 | HLT      | Q      | `HLT reg8, value8`                                 |
-| LDA      | T      | `LDA reg16, [reg16]` or `LDA reg16, [reg16 + rel]` |
-| STA      | T      | `STA [reg16], reg16` or `STA [reg16 + rel], reg16` |
+| LDA      | T      | `LDA reg8, [reg16]` or `LDA reg8, [reg16 + rel]` |
+| STA      | T      | `STA [reg16], reg8` or `STA [reg16 + rel], reg8` |
 | LDI      | Q      | `LDI reg8, value8`                                 |
 | ADD      | S      | `ADD reg8, reg8, reg8`                             |
 | ADC      | S      | `ADC reg8, reg8, reg8`                             |
@@ -81,7 +86,7 @@ Operands
 | SHR      | T      | `SHR reg8, value4`                                 |
 | JMP      | V      | `JMP rel`                                          |
 | JPF      | Q      | `JPF [reg16]` or `JPF [reg16 + rel]`               |
-| JNZ      | Q      | `JNZ reg8, [rel]`                                  |
+| JNZ      | Q      | `JNZ reg8, rel`                                  |
 | JPC      | T      | `JPC reg8, test, reg8`                             |
 
 ## Memory Addresses

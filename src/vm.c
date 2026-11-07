@@ -188,7 +188,8 @@ bool vm_step(VM *vm) {
             rx = vm_get_r(vm, inst.rx);
             ry = vm_get_r(vm, inst.ry);
             rd = rx + ry;
-            vm->carry = 0;
+            temp16 = rx + ry;
+            vm->carry = (uint8_t) (temp16 >> 8);
             vm_put_r(vm, inst.rd, rd);
             break;
         case OP_ADC:

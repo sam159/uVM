@@ -115,3 +115,5 @@ programs/**/*.bin
 
 output.bin
 .worktrees/
+
+opencode.json

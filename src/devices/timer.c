@@ -46,9 +46,15 @@ static void timer_write(void *ctx, uint16_t addr, uint8_t data) {
         }
         case 0x1:
             t->timer_h = data;
+#ifdef TIMER_DEBUG
+            printf("Timer set to %d\n",  (uint16_t)t->timer_h << 8 | t->timer_l);
+#endif
             break;
         case 0x2:
             t->timer_l = data;
+#ifdef TIMER_DEBUG
+            printf("Timer set to %d\n",  (uint16_t)t->timer_h << 8 | t->timer_l);
+#endif
             break;
         default:
             break;
